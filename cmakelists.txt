@@ -12,11 +12,19 @@ file(GLOB_RECURSE cdonsol_source
     "Source/*.c" 
 )
 
+###################################################################### DEPENDS
+
+find_package(Curses REQUIRED)
+include_directories(${CURSES_INCLUDE_DIR})
+
 ###################################################################### TARGET
+
 
 # Create our target as a library, link our sources
 add_executable(cdonsol ${cdonsol_source})
 
+# link dependancies
+target_link_libraries(cdonsol ${CURSES_LIBRARIES})
 
 # Setup include directories for our target
 target_include_directories(cdonsol PUBLIC 

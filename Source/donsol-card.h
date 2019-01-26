@@ -36,10 +36,6 @@ enum {
   CARDSTATE_MASK = CARDSTATE_FLIPPED
 };
 
-#define DECK_SIZE 54
-extern card_t g_StartingDeck[];
-extern card_t g_ActiveDeck[];
-
 inline u8 donsol_card_IsJoker(card_t card)
 {
   return (card & CARD_MASK) >= CARD_JO1;
@@ -86,7 +82,7 @@ inline u8 donsol_card_IsFlipped(card_t card)
   return !!(card & CARDSTATE_FLIPPED);
 }
 
-void donsol_card_ClearFlippedBit();
-void donsol_card_ShuffleDeck();
+void donsol_card_ClearFlippedBit(card_t* collection, u8 count);
+void donsol_card_ShuffleDeck(card_t* collection, u8 count);
 
 #endif // __DONSOL_CARD_H_

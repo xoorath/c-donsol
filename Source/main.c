@@ -6,6 +6,7 @@
 
 #include "donsol-card.h"
 #include "donsol-game.h"
+#include "cdonsol-art.h"
 
 #define INPUT_IS(x) (0 == strcmp(InputBuffer, x))
 
@@ -35,7 +36,7 @@ static struct Scene_t {
     .Width = 120, .Height = 30,
 
     // Where to draw cards, how far appart
-    .CardsX = 5, .CardsY = 5, .CardSpacing = 10,
+    .CardsX = 5, .CardsY = 8, .CardSpacing = 10,
     
     .WelcomeText = "Entered Donsol",
     .WelcomePosX = 5, .WelcomePosY = 3,
@@ -65,7 +66,8 @@ static struct Scene_t {
 };
 
 char InputBuffer[1024] = {0};
-WINDOW *Window;
+char ErrorBuffer[1024] = {0};
+WINDOW *Window = 0, *dialogue = 0;
 
 //////////////////////////////////////////////////////////////////////////////// API
 
@@ -81,37 +83,45 @@ int GetProgressBar(int value, int maxValue, int outputRange) {
     return (int)floor((v * (double)outputRange + 0.5));
 }
 
+void OnGameError(char const* msg) {
+    memcpy(ErrorBuffer, msg, strlen(msg)+1);
+}
+
+void OnStatusUpdate(DonsolStatusUpdate update, char const* msg) {
+
+}
+
 //////////////////////////////////////////////////////////////////////////////// Update
 static void Update(void) {
     // Read Input
     //////////
-    wmove(Window, g_Scene.Height - g_Scene.InputPosY, g_Scene.InputPosX);
-    wscanw(Window, "%s", InputBuffer);
+    int c = wgetch(Window);
 
     // Check Input
     //////////
-    if(INPUT_IS("q")) {
-        Exit();
+    switch(c) {
+        case 'q':
+            Exit();
+            break;
+        case 'x':
+            StartGame();
+            break;
+        case 'r':
+            donsol_game_pick_run(&g_Game);
+            break;
+        case '1':
+            donsol_game_pick_card(&g_Game, 1);
+            break;
+        case '2':
+            donsol_game_pick_card(&g_Game, 2);
+            break;
+        case '3':
+            donsol_game_pick_card(&g_Game, 3);
+            break;
+        case '4':
+            donsol_game_pick_card(&g_Game, 4);
+            break;
     }
-    else if(INPUT_IS("x")) {
-        StartGame();
-    }
-    else if(INPUT_IS("r")) {
-        donsol_game_run(&g_Game);
-    }
-    else if(INPUT_IS("1")) {
-        donsol_game_pick_card(&g_Game, 1);
-    }
-    else if(INPUT_IS("2")) {
-        donsol_game_pick_card(&g_Game, 2);
-    }
-    else if(INPUT_IS("3")) {
-        donsol_game_pick_card(&g_Game, 3);
-    }
-    else if(INPUT_IS("4")) {
-        donsol_game_pick_card(&g_Game, 4);
-    }
-
 }
 
 //////////////////////////////////////////////////////////////////////////////// Render
@@ -166,16 +176,39 @@ static void Render(void) {
     wmove(Window, g_Scene.XPPosY, g_Scene.Width - g_Scene.XPPosX);
     wprintw(Window, "%s", progressBuffer);
 
+    // Cards
+    //////////
+    for(u8 i = 0; i < 4; ++i) {
+        card_t card = g_Game.card[i];
+        char const* art = NULL;
+        if(donsol_card_IsFlipped(card)) {
+            art = cdonsol_art_back;
+        } else if(donsol_card_IsHearts(card)) {
+            art = cdonsol_art_heart;
+        } else if(donsol_card_IsDiamonds(card)) {
+            art = cdonsol_art_diamond;
+        } else if(donsol_card_IsClubs(card)) {
+            art = cdonsol_art_club;
+        } else if(donsol_card_IsSpades(card)) {
+            art = cdonsol_art_spade;
+        }
+        for(u16 y = 0; y < cdonsol_art_height; ++y) {
+            for(u16 x = 0; x < cdonsol_art_width; ++x) {
+                wmove(Window, g_Scene.CardsY+y, g_Scene.CardsX+x + (i*g_Scene.CardSpacing));
+                waddch(Window, art[x+y*cdonsol_art_width]);
+            }
+        }
+    }
+
     // Help Text
     //////////
     wmove(Window, g_Scene.Height - g_Scene.InputPosY+1, g_Scene.InputPosX - g_Scene.InputPromptLen);
     wprintw(Window, "%s", g_Scene.InputHelpText);
     
-    // Input Prompt
-    //////////
-    wmove(Window, g_Scene.Height - g_Scene.InputPosY, g_Scene.InputPosX - g_Scene.InputPromptLen);
-    wprintw(Window, g_Scene.InputPrompt);
-
+    if(ErrorBuffer[0]) {
+        wmove(Window, 0, 0);
+        wprintw(Window, ErrorBuffer);
+    }
 
     wrefresh(Window);
 }
@@ -193,6 +226,37 @@ static void StartGame(void) {
 
 //////////////////////////////////////////////////////////////////////////////// Exit
 static void Exit(void) {
+    dialogue = newwin(g_Scene.Height/2, g_Scene.Width/2, g_Scene.Height/4, g_Scene.Width/4);
+    if(0 == dialogue) {
+        goto exit_label;
+    }
+
+    box(dialogue, 0, 0);
+
+    int selected = 0;
+    while(!selected) {
+        wmove(dialogue, 6, 24);
+        wprintw(dialogue, "Quit? (Y/N)");
+        wmove(dialogue, 0, 0);
+        switch(wgetch(dialogue)) {
+            default:
+                break;
+            case 'y':
+            case 'Y':
+                selected = 1;
+                break;
+            case 'n':
+            case 'N':
+                delwin(dialogue);
+                dialogue = 0;
+                return;
+        }
+    }
+
+    delwin(dialogue);
+    dialogue = 0;
+
+exit_label:
     donsol_game_quit(&g_Game);
     delwin(Window);
     endwin();
@@ -206,7 +270,16 @@ int main() {
 	    fprintf(stderr, "Error initializing ncurses.\n");
 	    exit(EXIT_FAILURE);
     }
+    // size the window
     wresize(Window, g_Scene.Height, g_Scene.Width);
+
+    // hide the cursor
+    curs_set(0);
+
+    // hook up error handler
+    g_Game.onError = OnGameError;
+    g_Game.onStatusUpdate = OnStatusUpdate;
+
     StartGame();
     for(;;) {
         Render();

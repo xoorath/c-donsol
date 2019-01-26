@@ -1,36 +1,40 @@
 ﻿#include "cdonsol-art.h"
 
-// See: https://github.com/setphen/Donsol/blob/master/game/models.py
-
 u16 cdonsol_art_width = 7;
 u16 cdonsol_art_height = 4;
 
 char const* cdonsol_art_spade =
-"   ∭∭  "
-" ◢ ⁕ ) "
-"  ╖▓▓╖ "
-" m▟ m▟ ";
+"  /-\\  "
+"//spa\\\\"
+"\\\\de-//"
+"  \\-/  ";
 
 char const* cdonsol_art_club =
-"   ∭∭  "
-" ◢ ⁕ ) "
-"  ╖▓▓╖ "
-" m▟ m▟ ";
+"  ]o[  "
+"  | |  "
+" /clu\\ "
+"[__b__]";
 
 char const* cdonsol_art_joker =
-"   ╱ ╲  "
-"  [ ۞ ] "
-"   ╲ ╱  "
-"   ҈ ҈ ҈ ҈  ";
+"  /-\\  "
+"//jok\\\\"
+"\\\\er-//"
+"  \\-/  ";
 
 char const* cdonsol_art_heart =
-"  ╮◎╭  "
-"  ┋⇡┋  "
-" ╭╛ ╘╮ "
-" ╰━━━╯ ";
+"  ]o[  "
+"  | |  "
+" /hea\\ "
+"[_rt__]";
 
 char const* cdonsol_art_diamond =
-"  ▞▲▚  "
-" ╱┏ ┓╲ "
-" ╲┗ ┛╱ "
-"  ▚▼▞  ";
+"  /-\\  "
+"//dia\\\\"
+"\\\\mon//"
+"  \\d/  ";
+
+char const* cdonsol_art_back =
+".=====."
+"|/////|"
+"|\\\\\\\\\\|"
+".=====.";

@@ -36,51 +36,16 @@ enum {
   CARDSTATE_MASK = CARDSTATE_FLIPPED
 };
 
-inline u8 donsol_card_IsJoker(card_t card)
-{
-  return (card & CARD_MASK) >= CARD_JO1;
-}
-
-inline u8 donsol_card_IsFace(card_t card)
-{
-  card = card & CARD_MASK;
-  return card >= CARD_J && CARD_J <= CARD_K;
-}
-
-inline u8 donsol_card_IsNumeric(card_t card)
-{
-  return (card & CARD_MASK) <= CARD_10;
-}
-
-inline u8 donsol_card_GetSuit(card_t card)
-{
-  return (card & SUIT_MASK);
-}
-
-inline u8 donsol_card_IsHearts(card_t card)
-{
-  return donsol_card_GetSuit(card) == SUIT_HEARTS;
-}
-
-inline u8 donsol_card_IsDiamonds(card_t card)
-{
-  return donsol_card_GetSuit(card) == SUIT_DIAMONDS;
-}
-
-inline u8 donsol_card_IsSpades(card_t card)
-{
-  return donsol_card_GetSuit(card) == SUIT_SPADES;
-}
-
-inline u8 donsol_card_IsClubs(card_t card)
-{
-  return donsol_card_GetSuit(card) == SUIT_CLUBS;
-}
-
-inline u8 donsol_card_IsFlipped(card_t card)
-{
-  return !!(card & CARDSTATE_FLIPPED);
-}
+u8 donsol_card_IsJoker(card_t card);
+u8 donsol_card_IsFace(card_t card);
+u8 donsol_card_IsNumeric(card_t card);
+u8 donsol_card_GetNumericValue(card_t card);
+u8 donsol_card_GetSuit(card_t card);
+u8 donsol_card_IsHearts(card_t card);
+u8 donsol_card_IsDiamonds(card_t card);
+u8 donsol_card_IsSpades(card_t card);
+u8 donsol_card_IsClubs(card_t card);
+u8 donsol_card_IsFlipped(card_t card);
 
 void donsol_card_ClearFlippedBit(card_t* collection, u8 count);
 void donsol_card_ShuffleDeck(card_t* collection, u8 count);

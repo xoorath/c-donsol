@@ -1,0 +1,1 @@
+This file exists so the Build folder will be tracked in git.

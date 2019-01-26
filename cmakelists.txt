@@ -1,0 +1,24 @@
+cmake_minimum_required(VERSION 3.0.2)
+
+###################################################################### PROJECT
+
+project(cdonsol)
+
+###################################################################### FILES
+
+# Setup source files for our target
+file(GLOB_RECURSE cdonsol_source
+    "Source/*.h",
+    "Source/*.c" 
+)
+
+###################################################################### TARGET
+
+# Create our target as a library, link our sources
+add_executable(cdonsol ${cdonsol_source})
+
+
+# Setup include directories for our target
+target_include_directories(cdonsol PUBLIC 
+    "${CMAKE_CURRENT_SOURCE_DIR}/Include"
+)

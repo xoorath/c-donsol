@@ -5,8 +5,16 @@
 #include "donsol-card.h"
 
 typedef enum {
-    DONSOL_STATUS_POTION_WASTED
+    DONSOL_STATUS_POTION_WASTED,
+    DONSOL_STATUS_POTION_USED
 } DonsolStatusUpdate;
+
+typedef struct {
+    card_t* dcard;
+    char name[64];
+    u8 power;
+    u8 isMonster, isPotion, isShield;
+} DonsolCardDescription_t;
 
 typedef struct {
     // last change to hp/xp/dp for use in UI
@@ -19,7 +27,7 @@ typedef struct {
     u8 canDrink;
 
     // The 4 active slots.
-    card_t card[4];
+    DonsolCardDescription_t slots[4];
 
     void(*onError)(char const*);
     void(*onStatusUpdate)(DonsolStatusUpdate, char const*);

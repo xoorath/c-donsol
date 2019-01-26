@@ -1,4 +1,5 @@
 #include "donsol-game.h"
+#include <stdio.h>
 
 const u8 g_DeckSize = 54;
 static card_t g_Deck[54] = {
@@ -62,6 +63,78 @@ static card_t g_Deck[54] = {
     CARD_K    | SUIT_CLUBS
 };
 
+static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex) {
+    card_t* dcard = &g_Deck[deckIndex];
+    DonsolCardDescription_t* desc = &game->slots[slotIndex];    
+    desc->dcard = dcard;
+    if(donsol_card_IsJoker(*dcard)) {
+        desc->isMonster = 1;
+        desc-> isPotion = 0;
+        desc->isShield = 0;
+        desc->power = 21;
+        if(*dcard & CARD_JO1) {
+            sprintf(desc->name, "First Donsol 21");
+        } else {
+            sprintf(desc->name, "Second Donsol 21");
+        }
+    }
+    else if(donsol_card_IsHearts(*dcard)) {
+        if(donsol_card_IsNumeric(*dcard)) {
+            // potion
+            desc->power = donsol_card_GetNumericValue(*dcard);
+            desc->isMonster = 0;
+            desc-> isPotion = 1;
+            desc->isShield = 0;
+            sprintf(desc->name, "Potion %d", (int)desc->power);
+        } else {
+            // white mage
+            desc->power = 11;
+            desc->isMonster = 1;
+            desc-> isPotion = 0;
+            desc->isShield = 0;
+            sprintf(desc->name, "White Mage %d", (int)desc->power);
+        }
+    }
+    else if(donsol_card_IsDiamonds(*dcard)) {
+        if(donsol_card_IsNumeric(*dcard)) {
+            desc->power = donsol_card_GetNumericValue(*dcard);
+            desc->isMonster = 0;
+            desc-> isPotion = 0;
+            desc->isShield = 1;
+            sprintf(desc->name, "Shield %d", (int)desc->power);
+        } else {
+            desc->power = 11;
+            desc->isMonster = 1;
+            desc-> isPotion = 0;
+            desc->isShield = 0;
+            sprintf(desc->name, "Red Mage %d", (int)desc->power);
+        }
+    }
+    else if(donsol_card_IsClubs(*dcard) || donsol_card_IsSpades(*dcard)) {
+        u8 numeric = donsol_card_GetNumericValue(*dcard);
+        if(donsol_card_IsNumeric(*dcard)) {
+            desc->power = numeric;
+            desc->isMonster = 1;
+            desc-> isPotion = 0;
+            desc->isShield = 0;
+            sprintf(desc->name, "Monster %d", (int)desc->power);
+        } else {
+            desc->isMonster = 1;
+            desc-> isPotion = 0;
+            desc->isShield = 0;
+            switch(numeric) {
+                case CARD_J: desc->power = 11; break;
+                case CARD_Q: desc->power = 13; break;
+                case CARD_K: desc->power = 15; break;
+                case CARD_A: desc->power = 17; break;
+            }
+            sprintf(desc->name, "Big Monster %d", (int)desc->power);
+        }
+    } else {
+        if(game->onError) game->onError("Couldn't determine which card case to handle");
+    }
+}
+
 void donsol_game_clear_deltas(DonsolGame_t* game) {
     game->xpDelta = game->hpDelta = game->dpDelta = 0;
 }
@@ -77,11 +150,10 @@ void donsol_game_start(DonsolGame_t* game) {
     donsol_game_clear_deltas(game);
 
     game->canDrink = 1;
-
-    game->card[0] = g_Deck[0];
-    game->card[1] = g_Deck[1];
-    game->card[2] = g_Deck[2];
-    game->card[3] = g_Deck[3];
+    donsol_game_set_slot(game, 0, 0);
+    donsol_game_set_slot(game, 1, 1);
+    donsol_game_set_slot(game, 2, 2);
+    donsol_game_set_slot(game, 3, 3);
 }
 
 void donsol_game_pick_run(DonsolGame_t* game) {
@@ -104,7 +176,7 @@ void donsol_game_pick_potion(DonsolGame_t* game, card_t *dcard, u8 val) {
     game->canDrink = 0;
 }
 
-void donsol_game_pick_shield(DonsolGame_t* game, card_t *dcard) {
+void donsol_game_pick_shield(DonsolGame_t* game, card_t *dcard, int power) {
     game->canDrink = 1;
 }
 
@@ -113,62 +185,29 @@ void donsol_game_pick_enemy(DonsolGame_t* game, card_t *dcard, int atk) {
 }
 
 void donsol_game_pick_card(DonsolGame_t* game, u8 index) {
-    card_t *dcard = 0;
-    for(int i = 0; i < g_DeckSize; ++i) {
-        // compare the card value/suit, not the flip state.
-        if((game->card[index-1] & ~CARDSTATE_FLIPPED) == (g_Deck[i] & ~CARDSTATE_FLIPPED)) {
-            dcard = &g_Deck[i];
-            break;
-        }
-    }
+    DonsolCardDescription_t* desc = &game->slots[index-1];
+    card_t *dcard = desc->dcard;
+    
     // Couldn't find that card in the deck. This is an error case.
     if(0 == dcard) {
-        if(game->onError) game->onError("Couldn't find card in deck");
+        if(game->onError) game->onError("Selected card has a null dcard");
         return;
     }
 
-    if(donsol_card_IsJoker(*dcard)) {
+    if(desc->isMonster) {
         // donsol
-        donsol_game_pick_enemy(game, dcard, 21);
+        donsol_game_pick_enemy(game, dcard, desc->power);
     }
-    else if(donsol_card_IsHearts(*dcard)) {
-        if(donsol_card_IsNumeric(*dcard)) {
-            // potion
-            u8 numeric = donsol_card_GetNumericValue(*dcard);
-            donsol_game_pick_potion(game, dcard, numeric+1);
-        } else {
-            // white mage
-            donsol_game_pick_enemy(game, dcard, 11);
-        }
+    else if(desc->isShield) {
+        donsol_game_pick_shield(game, dcard, desc->power);
     }
-    else if(donsol_card_IsDiamonds(*dcard)) {
-        if(donsol_card_IsNumeric(*dcard)) {
-            // shield
-            donsol_game_pick_shield(game, dcard);
-        } else {
-            // red mage
-            donsol_game_pick_enemy(game, dcard, 11);
-        }
-    }
-    else if(donsol_card_IsClubs(*dcard) || donsol_card_IsSpades(*dcard)) {
-        u8 numeric = donsol_card_GetNumericValue(*dcard);
-        if(donsol_card_IsNumeric(*dcard)) {
-            // simple monster
-            donsol_game_pick_enemy(game, dcard, numeric + 1);
-        } else {
-            // big monster
-            switch(numeric) {
-                case CARD_J: donsol_game_pick_enemy(game, dcard, 11); break;
-                case CARD_Q: donsol_game_pick_enemy(game, dcard, 13); break;
-                case CARD_K: donsol_game_pick_enemy(game, dcard, 15); break;
-                case CARD_A: donsol_game_pick_enemy(game, dcard, 17); break;
-            }
-        }
+    else if(desc->isPotion) {
+        donsol_game_pick_potion(game, dcard, desc->power);
     } else {
         if(game->onError) game->onError("Couldn't determine which card case to handle");
     }
 
-    game->card[index-1] = (*dcard |= CARDSTATE_FLIPPED);
+    *dcard |= CARDSTATE_FLIPPED;
     
 
 }

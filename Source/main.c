@@ -21,9 +21,8 @@ static struct Scene_t {
     char const* WelcomeText;
     int WelcomePosX, WelcomePosY;
 
-    char const* InputPrompt; int InputPromptLen;
     char const* InputHelpText;
-    int InputPosX, InputPosY, InputWidth;
+    int InputPosX, InputPosY;
 
     int ProgressChars;
     char *ProgressCharFull, *ProgressCharEmpty;
@@ -33,22 +32,19 @@ static struct Scene_t {
     int XPPosX, XPPosY;
 } g_Scene = {
     // How big is the play area
-    .Width = 120, .Height = 30,
+    .Width = 120, .Height = 26,
 
     // Where to draw cards, how far appart
-    .CardsX = 5, .CardsY = 8, .CardSpacing = 10,
+    .CardsX = 10, .CardsY = 8, .CardSpacing = 30,
     
     .WelcomeText = "Entered Donsol",
     .WelcomePosX = 5, .WelcomePosY = 3,
 
-    .InputPrompt = "Input: ", .InputPromptLen = /*compute me*/0,
-
-    .InputHelpText = "cards: [1 2 3 4] run [r] restart [x] quit [q]",
+    .InputHelpText = "cards:(1 2 3 4) run:(r) restart:(x) quit:(q)",
 
     // Where to take player input; how much input to take
-    .InputPosX = 45, 
+    .InputPosX = 38, 
     .InputPosY = 5, // from screen bottom
-    .InputWidth = 64,
     
     // How many characters are represented in the progress bars
     .ProgressChars = 8,
@@ -179,7 +175,7 @@ static void Render(void) {
     // Cards
     //////////
     for(u8 i = 0; i < 4; ++i) {
-        card_t card = g_Game.card[i];
+        card_t card = *g_Game.slots[i].dcard;
         char const* art = NULL;
         if(donsol_card_IsFlipped(card)) {
             art = cdonsol_art_back;
@@ -198,11 +194,13 @@ static void Render(void) {
                 waddch(Window, art[x+y*cdonsol_art_width]);
             }
         }
+        wmove(Window, g_Scene.CardsY+cdonsol_art_height+1, g_Scene.CardsX + (i*g_Scene.CardSpacing));
+        wprintw(Window, "%s", g_Game.slots[i].name);
     }
 
     // Help Text
     //////////
-    wmove(Window, g_Scene.Height - g_Scene.InputPosY+1, g_Scene.InputPosX - g_Scene.InputPromptLen);
+    wmove(Window, g_Scene.Height - g_Scene.InputPosY+1, g_Scene.InputPosX);
     wprintw(Window, "%s", g_Scene.InputHelpText);
     
     if(ErrorBuffer[0]) {
@@ -216,10 +214,9 @@ static void Render(void) {
 //////////////////////////////////////////////////////////////////////////////// Start Game
 static void StartGame(void) {
 #define ZERO_ARR(x) memset(x, 0, sizeof(x)/sizeof(*x));
-
+    memset(&g_Game, 0, sizeof(g_Game));
     donsol_game_start(&g_Game);
     ZERO_ARR(InputBuffer);
-    g_Scene.InputPromptLen = strlen(g_Scene.InputPrompt);
 
 #undef ZERO_ARR
 }
@@ -275,6 +272,8 @@ int main() {
 
     // hide the cursor
     curs_set(0);
+    // don't show the character you just typed.
+    noecho();
 
     // hook up error handler
     g_Game.onError = OnGameError;

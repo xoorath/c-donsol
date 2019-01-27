@@ -20,7 +20,8 @@ u8 donsol_card_IsFace(card_t card)
 
 u8 donsol_card_IsNumeric(card_t card)
 {
-  return (card & CARD_MASK) <= CARD_10;
+  card &= CARD_MASK;
+  return card > CARD_A && card <= CARD_10;
 }
 
 u8 donsol_card_GetNumericValue(card_t card)
@@ -58,21 +59,17 @@ u8 donsol_card_IsFlipped(card_t card)
   return !!(card & CARDSTATE_FLIPPED);
 }
 
-void donsol_card_ClearFlippedBit(card_t* collection, u8 count)
-{
+void donsol_card_ClearFlippedBit(card_t* collection, u8 count) {
   u8 i;
-  for(i = 0; i < count; ++i)
-  {
+  for(i = 0; i < count; ++i) {
     collection[i] &= ~CARDSTATE_FLIPPED;
   }
 }
 
-void donsol_card_ShuffleDeck(card_t* collection, u8 count)
-{
+void donsol_card_ShuffleDeck(card_t* collection, u8 count) {
   u8 i, r;
   card_t t;
-  for(i = 0; i < count; ++i)
-  {
+  for(i = 0; i < count; ++i) {
     r = donsolRandom() % count;
     t = collection[i];
     collection[i] = collection[r];

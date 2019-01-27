@@ -3,35 +3,48 @@
 u16 cdonsol_art_width = 7;
 u16 cdonsol_art_height = 4;
 
+/*
+          _____
+         |A .  | _____
+         | /.\ ||A ^  | _____
+         |(_._)|| / \ ||A _  | _____
+ejm98    |  |  || \ / || ( ) ||A_ _ |
+         |____V||  .  ||(_'_)||( v )|
+                |____V||  |  || \ / |
+                       |____V||  .  |
+                              |____V|
+
+*/
+
 char const* cdonsol_art_spade =
-"  /-\\  "
-"//spa\\\\"
-"\\\\de-//"
-"  \\-/  ";
+"   .   "
+"  /.\\  "
+" (_._) "
+"   |   ";
 
 char const* cdonsol_art_club =
-"  ]o[  "
-"  | |  "
-" /clu\\ "
-"[__b__]";
+"   _   "
+"  ( )  "
+"(_   _)"
+"   |   ";
 
 char const* cdonsol_art_joker =
-"  /-\\  "
-"//jok\\\\"
-"\\\\er-//"
-"  \\-/  ";
+" _____ "
+"( ooo )"
+"(_.V._)"
+"{}{ }{}";
 
 char const* cdonsol_art_heart =
 "  ]o[  "
 "  | |  "
-" /hea\\ "
-"[_rt__]";
+" /---\\ "
+"[_____]";
 
 char const* cdonsol_art_diamond =
 "  /-\\  "
-"//dia\\\\"
-"\\\\mon//"
-"  \\d/  ";
+"//---\\\\"
+"\\\\---//"
+"  \\-/  ";
 
 char const* cdonsol_art_back =
 ".=====."

@@ -5,8 +5,12 @@
 #include "donsol-card.h"
 
 typedef enum {
+    DONSOL_STATUS_WELCOME,
+
     DONSOL_STATUS_POTION_WASTED,
-    DONSOL_STATUS_POTION_USED
+    DONSOL_STATUS_POTION_USED,
+
+    DONSOL_STATUS_CANT_RUN
 } DonsolStatusUpdate;
 
 typedef struct {
@@ -25,6 +29,7 @@ typedef struct {
 
     // restrictions
     u8 canDrink;
+    u8 canRun;
 
     // The 4 active slots.
     DonsolCardDescription_t slots[4];
@@ -41,4 +46,5 @@ void donsol_game_pick_card(DonsolGame_t* game, u8 index); // index can be: [1,2,
 
 // perform cleanup
 void donsol_game_quit(DonsolGame_t* game);
+
 #endif // __DONSOL_GAME_H_

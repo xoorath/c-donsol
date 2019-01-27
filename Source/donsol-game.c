@@ -1,6 +1,7 @@
 #include "donsol-game.h"
 #include <stdio.h>
 
+
 const u8 g_DeckSize = 54;
 static card_t g_Deck[54] = {
     CARD_JO1,
@@ -64,8 +65,18 @@ static card_t g_Deck[54] = {
 };
 
 static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex) {
+    if(slotIndex >= 4) {
+        if(game->onError) game->onError("set slot slot index out of range");
+        return;
+    }
+    if(deckIndex >= g_DeckSize) {
+        if(game->onError) game->onError("set slot deck index out of range");
+        return;
+    }
+    
     card_t* dcard = &g_Deck[deckIndex];
     DonsolCardDescription_t* desc = &game->slots[slotIndex];    
+
     desc->dcard = dcard;
     if(donsol_card_IsJoker(*dcard)) {
         desc->isMonster = 1;
@@ -81,62 +92,156 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
     else if(donsol_card_IsHearts(*dcard)) {
         if(donsol_card_IsNumeric(*dcard)) {
             // potion
-            desc->power = donsol_card_GetNumericValue(*dcard);
+            desc->power = donsol_card_GetNumericValue(*dcard) + 1;
             desc->isMonster = 0;
             desc-> isPotion = 1;
             desc->isShield = 0;
-            sprintf(desc->name, "Potion %d", (int)desc->power);
+            if(desc->power <= 3) {
+                sprintf(desc->name, "Sm Potion %d", (int)desc->power);
+            } else if(desc->power <= 8) {
+                sprintf(desc->name, "Md Potion %d", (int)desc->power);
+            } else {
+                sprintf(desc->name, "Lg Potion %d", (int)desc->power);
+            }
+            if(desc->power == 0) {
+                char tempbitching[256] = {0};
+                sprintf(tempbitching, "%d", (int)*dcard);
+                game->onError(tempbitching);
+            }
         } else {
             // white mage
             desc->power = 11;
-            desc->isMonster = 1;
-            desc-> isPotion = 0;
+            desc->isMonster = 0;
+            desc-> isPotion = 1;
             desc->isShield = 0;
             sprintf(desc->name, "White Mage %d", (int)desc->power);
         }
     }
     else if(donsol_card_IsDiamonds(*dcard)) {
         if(donsol_card_IsNumeric(*dcard)) {
-            desc->power = donsol_card_GetNumericValue(*dcard);
+            desc->power = donsol_card_GetNumericValue(*dcard) + 1;
             desc->isMonster = 0;
             desc-> isPotion = 0;
             desc->isShield = 1;
-            sprintf(desc->name, "Shield %d", (int)desc->power);
+            if(desc->power <= 3) {
+                sprintf(desc->name, "Buckler %d", (int)desc->power);
+            } else if(desc->power <= 8) {
+                sprintf(desc->name, "Shield %d", (int)desc->power);
+            } else {
+                sprintf(desc->name, "Lg Shield %d", (int)desc->power);
+            }
         } else {
             desc->power = 11;
-            desc->isMonster = 1;
-            desc-> isPotion = 0;
+            desc->isMonster = 0;
+            desc-> isPotion = 1;
             desc->isShield = 0;
             sprintf(desc->name, "Red Mage %d", (int)desc->power);
         }
     }
     else if(donsol_card_IsClubs(*dcard) || donsol_card_IsSpades(*dcard)) {
-        u8 numeric = donsol_card_GetNumericValue(*dcard);
+        u8 numeric = donsol_card_GetNumericValue(*dcard) + 1;
         if(donsol_card_IsNumeric(*dcard)) {
             desc->power = numeric;
             desc->isMonster = 1;
             desc-> isPotion = 0;
             desc->isShield = 0;
-            sprintf(desc->name, "Monster %d", (int)desc->power);
+
+            static char const* clubNames[] = {
+                "??", // A
+                "Rat", // 2
+                "Bat", // 3
+                "Imp", // 4
+                "Goblin", // 5
+                "Orc", // 6
+                "Ogre", // 7
+                "Beholder", // 8
+                "Medusa", // 9
+                "Demon"}; // 10
+            static char const* spadeNames[] = {
+                "??", // A
+                "Slime", // 2
+                "Tunneler", // 3
+                "Fiend", // 4
+                "Drake", // 5
+                "Specter", // 6
+                "Ghost", // 7
+                "Elemental", // 8
+                "Witch", // 9
+                "Familiar"}; // 10
+            sprintf(desc->name, "%s %d", donsol_card_IsClubs(*dcard) ? clubNames[desc->power-1] : spadeNames[desc->power-1], (int)desc->power);
         } else {
             desc->isMonster = 1;
             desc-> isPotion = 0;
             desc->isShield = 0;
             switch(numeric) {
-                case CARD_J: desc->power = 11; break;
-                case CARD_Q: desc->power = 13; break;
-                case CARD_K: desc->power = 15; break;
-                case CARD_A: desc->power = 17; break;
+                case CARD_J:
+                    desc->power = 11;
+                    sprintf(desc->name, "Consort %d", (int)desc->power);
+                    break;
+                case CARD_Q:
+                    desc->power = 13;
+                    sprintf(desc->name, "Queen %d", (int)desc->power);
+                    break;
+                case CARD_K:
+                    desc->power = 15;
+                    sprintf(desc->name, "Regnant %d", (int)desc->power);
+                    break;
+                case CARD_A:
+                    desc->power = 17;
+                    sprintf(desc->name, "Empress %d", (int)desc->power);
+                    break;
             }
-            sprintf(desc->name, "Big Monster %d", (int)desc->power);
         }
     } else {
         if(game->onError) game->onError("Couldn't determine which card case to handle");
     }
 }
 
-void donsol_game_clear_deltas(DonsolGame_t* game) {
+static void donsol_game_clear_deltas(DonsolGame_t* game) {
     game->xpDelta = game->hpDelta = game->dpDelta = 0;
+}
+
+static void donsol_game_pick_potion(DonsolGame_t* game, card_t *dcard, u8 val) {
+    donsol_game_clear_deltas(game);
+    if(!game->canDrink) {
+        game->onStatusUpdate(DONSOL_STATUS_POTION_WASTED, "Potion Wasted");
+        return;
+    }
+
+    u8 hp = game->hp;
+    game->hp = game->hp+val >= 21 ? 21 : game->hp+val;
+    game->hpDelta = game->hp - hp;
+    if(game->hpDelta == 0) {
+        game->onStatusUpdate(DONSOL_STATUS_POTION_WASTED, "Potion Wasted");
+    } else {
+        game->onStatusUpdate(DONSOL_STATUS_POTION_USED, "Potion Used");
+    }
+
+    game->canDrink = 0;
+    game->canRun = 1;
+}
+
+static void donsol_game_pick_shield(DonsolGame_t* game, card_t *dcard, int power) {
+    game->canDrink = 1;
+}
+
+static void donsol_game_pick_enemy(DonsolGame_t* game, card_t *dcard, int atk) {
+    
+
+    game->canDrink = 1;
+    game->canRun = 1;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+void donsol_game_pick_run(DonsolGame_t* game) {
+    if(!game->canRun) {
+        game->onStatusUpdate(DONSOL_STATUS_CANT_RUN, "You can't escape this room.");
+        return;
+    }
+
+    game->canDrink = 1;
+    game->canRun = 0;
 }
 
 void donsol_game_start(DonsolGame_t* game) {
@@ -154,37 +259,16 @@ void donsol_game_start(DonsolGame_t* game) {
     donsol_game_set_slot(game, 1, 1);
     donsol_game_set_slot(game, 2, 2);
     donsol_game_set_slot(game, 3, 3);
-}
 
-void donsol_game_pick_run(DonsolGame_t* game) {
-    game->canDrink = 1;
-}
-
-void donsol_game_pick_potion(DonsolGame_t* game, card_t *dcard, u8 val) {
-    donsol_game_clear_deltas(game);
-    if(!game->canDrink) {
-        game->onStatusUpdate(DONSOL_STATUS_POTION_WASTED, "Potion Wasted");
-        return;
-    }
-
-    u8 hp = game->hp;
-    game->hp = game->hp+val >= 21 ? 21 : game->hp+val;
-    game->hpDelta = game->hp - hp;
-    if(game->hpDelta == 0) {
-        game->onStatusUpdate(DONSOL_STATUS_POTION_WASTED, "Potion Wasted");
-    }
-    game->canDrink = 0;
-}
-
-void donsol_game_pick_shield(DonsolGame_t* game, card_t *dcard, int power) {
-    game->canDrink = 1;
-}
-
-void donsol_game_pick_enemy(DonsolGame_t* game, card_t *dcard, int atk) {
-    game->canDrink = 1;
+    game->onStatusUpdate(DONSOL_STATUS_WELCOME, "Entered Donsol.");
 }
 
 void donsol_game_pick_card(DonsolGame_t* game, u8 index) {
+
+    if(index == 0 || index > 4) {
+        if(game->onError) game->onError("pick card out of range.");
+        return;
+    }
     DonsolCardDescription_t* desc = &game->slots[index-1];
     card_t *dcard = desc->dcard;
     

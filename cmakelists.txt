@@ -8,7 +8,7 @@ project(cdonsol)
 
 # Setup source files for our target
 file(GLOB_RECURSE cdonsol_source
-    "Source/*.h",
+    "Source/*.h"
     "Source/*.c" 
 )
 
@@ -18,7 +18,6 @@ find_package(Curses REQUIRED)
 include_directories(${CURSES_INCLUDE_DIR})
 
 ###################################################################### TARGET
-
 
 # Create our target as a library, link our sources
 add_executable(cdonsol ${cdonsol_source})

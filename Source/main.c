@@ -18,8 +18,8 @@ static struct Scene_t {
     
     int CardsX, CardsY, CardSpacing;
     
-    char const* WelcomeText;
-    int WelcomePosX, WelcomePosY;
+    char StatusText[64];
+    int StatusPosX, StatusPosY;
 
     char const* InputHelpText;
     int InputPosX, InputPosY;
@@ -27,6 +27,7 @@ static struct Scene_t {
     int ProgressChars;
     char *ProgressCharFull, *ProgressCharEmpty;
 
+    u8 PotionJustWasted;
     int HPPosX, HPPosY;
     int DPPosX, DPPosY;
     int XPPosX, XPPosY;
@@ -35,12 +36,12 @@ static struct Scene_t {
     .Width = 120, .Height = 26,
 
     // Where to draw cards, how far appart
-    .CardsX = 10, .CardsY = 8, .CardSpacing = 30,
+    .CardsX = 12, .CardsY = 10, .CardSpacing = 30,
     
-    .WelcomeText = "Entered Donsol",
-    .WelcomePosX = 5, .WelcomePosY = 3,
+    .StatusText = {0},
+    .StatusPosX = 5, .StatusPosY = 3,
 
-    .InputHelpText = "cards:(1 2 3 4) run:(r) restart:(x) quit:(q)",
+    .InputHelpText = "cards: 1 2 3 4   run: r   restart: x   quit: q",
 
     // Where to take player input; how much input to take
     .InputPosX = 38, 
@@ -84,7 +85,9 @@ void OnGameError(char const* msg) {
 }
 
 void OnStatusUpdate(DonsolStatusUpdate update, char const* msg) {
+    sprintf(g_Scene.StatusText, "%s", msg);
 
+    g_Scene.PotionJustWasted = (update == DONSOL_STATUS_POTION_WASTED);
 }
 
 //////////////////////////////////////////////////////////////////////////////// Update
@@ -96,6 +99,7 @@ static void Update(void) {
     // Check Input
     //////////
     switch(c) {
+        case 27: // esc
         case 'q':
             Exit();
             break;
@@ -129,8 +133,8 @@ static void Render(void) {
 
     // Welcome Text
     //////////
-    wmove(Window, g_Scene.WelcomePosY, g_Scene.WelcomePosX);
-    wprintw(Window, "%s", g_Scene.WelcomeText);
+    wmove(Window, g_Scene.StatusPosY, g_Scene.StatusPosX);
+    wprintw(Window, "%s", g_Scene.StatusText);
 
     // HP
     //////////
@@ -146,6 +150,14 @@ static void Render(void) {
     wmove(Window, g_Scene.HPPosY, g_Scene.Width - g_Scene.HPPosX);
     wprintw(Window, "%s", progressBuffer);
 
+    if(g_Game.hpDelta > 0 && !g_Scene.PotionJustWasted) {
+        wmove(Window, g_Scene.HPPosY-1, g_Scene.Width - g_Scene.HPPosX+3);
+        wprintw(Window, "+%d", g_Game.hpDelta);
+    } else if (g_Scene.PotionJustWasted) {
+        wmove(Window, g_Scene.HPPosY-1, g_Scene.Width - g_Scene.HPPosX);
+        wprintw(Window, "wasted");
+    }
+
     // DP
     //////////
     progress = GetProgressBar(g_Game.dp, 21, g_Scene.ProgressChars);
@@ -158,6 +170,11 @@ static void Render(void) {
     
     wmove(Window, g_Scene.DPPosY, g_Scene.Width - g_Scene.DPPosX);
     wprintw(Window, "%s", progressBuffer);
+
+    if(g_Game.dpDelta > 0) {
+        wmove(Window, g_Scene.DPPosY-1, g_Scene.Width - g_Scene.DPPosX+3);
+        wprintw(Window, "+%d", g_Game.dpDelta);
+    }
 
     // XP
     //////////
@@ -172,20 +189,70 @@ static void Render(void) {
     wmove(Window, g_Scene.XPPosY, g_Scene.Width - g_Scene.XPPosX);
     wprintw(Window, "%s", progressBuffer);
 
+    if(g_Game.xpDelta > 0) {
+        wmove(Window, g_Scene.XPPosY-1, g_Scene.Width - g_Scene.XPPosX+3);
+        wprintw(Window, "+%d", g_Game.xpDelta);
+    }
+
     // Cards
     //////////
     for(u8 i = 0; i < 4; ++i) {
         card_t card = *g_Game.slots[i].dcard;
         char const* art = NULL;
-        if(donsol_card_IsFlipped(card)) {
+
+        u8 suit = donsol_card_GetSuit(card);
+        u8 isJoke = donsol_card_IsJoker(card);
+        u8 isFlipped = donsol_card_IsFlipped(card);
+        
+        // Handle top text
+        if(!isFlipped) {
+            char cardNameBuff[16] = {0};
+
+            if(isJoke) {
+                sprintf(cardNameBuff, "Joker");
+            } else {
+                char basicName[8] = {0};
+                if(donsol_card_IsNumeric(card)) {
+                    sprintf(basicName, "%d", (int)donsol_card_GetNumericValue(card)+1);
+                } else if(card & CARD_K) {
+                    sprintf(basicName, "K");
+                } else if(card & CARD_Q) {
+                    sprintf(basicName, "Q");
+                } else if(card & CARD_J) {
+                    sprintf(basicName, "J");
+                } else {
+                    sprintf(basicName, "A");
+                }
+
+                if(suit == SUIT_CLUBS) {
+                    sprintf(cardNameBuff, "%s of clubs", basicName);
+                } else if(suit == SUIT_DIAMONDS) {
+                    sprintf(cardNameBuff, "%s of diamonds", basicName);
+                } else if(suit == SUIT_SPADES) {
+                    sprintf(cardNameBuff, "%s of spades", basicName);
+                } else {
+                    sprintf(cardNameBuff, "%s of hearts", basicName);
+                }
+            }
+            u8 largestNameText = 14;
+            u8 nameTextLen = strlen(cardNameBuff);
+            u8 centerOffset = (largestNameText-(largestNameText-nameTextLen))/2;
+            wmove(Window, g_Scene.CardsY-2, g_Scene.CardsX + (i*g_Scene.CardSpacing) + (cdonsol_art_width/2) - centerOffset);
+            wprintw(Window, "%s", cardNameBuff);
+        }
+
+        // Handle card art
+        if(isFlipped) {
             art = cdonsol_art_back;
-        } else if(donsol_card_IsHearts(card)) {
+        } else if(isJoke) {
+            art = cdonsol_art_joker;
+        } else if(suit == SUIT_HEARTS) {
             art = cdonsol_art_heart;
-        } else if(donsol_card_IsDiamonds(card)) {
+        } else if(suit == SUIT_DIAMONDS) {
             art = cdonsol_art_diamond;
-        } else if(donsol_card_IsClubs(card)) {
+        } else if(suit == SUIT_CLUBS) {
             art = cdonsol_art_club;
-        } else if(donsol_card_IsSpades(card)) {
+        } else if(suit == SUIT_SPADES) {
             art = cdonsol_art_spade;
         }
         for(u16 y = 0; y < cdonsol_art_height; ++y) {
@@ -194,8 +261,19 @@ static void Render(void) {
                 waddch(Window, art[x+y*cdonsol_art_width]);
             }
         }
-        wmove(Window, g_Scene.CardsY+cdonsol_art_height+1, g_Scene.CardsX + (i*g_Scene.CardSpacing));
-        wprintw(Window, "%s", g_Game.slots[i].name);
+
+        // handle bottom text
+        if(!isFlipped) {
+            // largest text:
+            // "second donsol 21"
+            u8 largestNameText = 15;
+            u8 nameTextLen = strlen(g_Game.slots[i].name);
+            u8 centerOffset = (largestNameText-(largestNameText-nameTextLen))/2;
+            wmove(Window, 
+                g_Scene.CardsY+cdonsol_art_height+1, 
+                g_Scene.CardsX + (i*g_Scene.CardSpacing) + (cdonsol_art_width/2) - centerOffset);
+            wprintw(Window, "%s", g_Game.slots[i].name);
+        }
     }
 
     // Help Text
@@ -214,10 +292,8 @@ static void Render(void) {
 //////////////////////////////////////////////////////////////////////////////// Start Game
 static void StartGame(void) {
 #define ZERO_ARR(x) memset(x, 0, sizeof(x)/sizeof(*x));
-    memset(&g_Game, 0, sizeof(g_Game));
     donsol_game_start(&g_Game);
     ZERO_ARR(InputBuffer);
-
 #undef ZERO_ARR
 }
 
@@ -242,6 +318,7 @@ static void Exit(void) {
             case 'Y':
                 selected = 1;
                 break;
+            case 27: // esc
             case 'n':
             case 'N':
                 delwin(dialogue);
@@ -263,7 +340,7 @@ exit_label:
 
 //////////////////////////////////////////////////////////////////////////////// Main
 int main() {
-    if ( (Window = initscr()) == NULL ) {
+    if (NULL == (Window = initscr())) {
 	    fprintf(stderr, "Error initializing ncurses.\n");
 	    exit(EXIT_FAILURE);
     }
@@ -274,6 +351,10 @@ int main() {
     curs_set(0);
     // don't show the character you just typed.
     noecho();
+
+    // start the game off fresh before we start it 
+    // (important for null checking pointers in the game object)
+    memset(&g_Game, 0, sizeof(g_Game));
 
     // hook up error handler
     g_Game.onError = OnGameError;

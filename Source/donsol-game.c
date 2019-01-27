@@ -1,6 +1,6 @@
 #include "donsol-game.h"
 #include <stdio.h>
-
+#include <stdlib.h>
 
 const u8 g_DeckSize = 54;
 static card_t g_Deck[54] = {
@@ -301,7 +301,7 @@ void donsol_game_start(DonsolGame_t* game) {
     donsol_card_ClearFlippedBit(g_Deck, g_DeckSize);
     donsol_card_ShuffleDeck(g_Deck, g_DeckSize);
 
-    game->hp = 5;
+    game->hp = 21;
     game->dp = 0;
     game->xp = 0;
 

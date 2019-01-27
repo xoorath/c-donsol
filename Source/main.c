@@ -44,7 +44,7 @@ static struct Scene_t {
     .InputHelpText = "cards: 1 2 3 4   run: r   restart: x   quit: q",
 
     // Where to take player input; how much input to take
-    .InputPosX = 38, 
+    .InputPosX = 39, 
     .InputPosY = 5, // from screen bottom
     
     // How many characters are represented in the progress bars
@@ -77,7 +77,10 @@ static void Exit(void);
 
 int GetProgressBar(int value, int maxValue, int outputRange) {
     double v = (double)value / (double)maxValue;
-    return (int)floor((v * (double)outputRange + 0.5));
+    int prog = (int)floor((v * (double)outputRange + 0.5));
+    if(prog < 0) prog = 0;
+    else if(prog > outputRange) prog = outputRange;
+    return prog;
 }
 
 void OnGameError(char const* msg) {
@@ -150,9 +153,9 @@ static void Render(void) {
     wmove(Window, g_Scene.HPPosY, g_Scene.Width - g_Scene.HPPosX);
     wprintw(Window, "%s", progressBuffer);
 
-    if(g_Game.hpDelta > 0 && !g_Scene.PotionJustWasted) {
+    if(g_Game.hpDelta != 0 && !g_Scene.PotionJustWasted) {
         wmove(Window, g_Scene.HPPosY-1, g_Scene.Width - g_Scene.HPPosX+3);
-        wprintw(Window, "+%d", g_Game.hpDelta);
+        wprintw(Window, "%c%d", g_Game.hpDelta>0?'+':'-', abs(g_Game.hpDelta));
     } else if (g_Scene.PotionJustWasted) {
         wmove(Window, g_Scene.HPPosY-1, g_Scene.Width - g_Scene.HPPosX);
         wprintw(Window, "wasted");
@@ -160,7 +163,7 @@ static void Render(void) {
 
     // DP
     //////////
-    progress = GetProgressBar(g_Game.dp, 21, g_Scene.ProgressChars);
+    progress = GetProgressBar(g_Game.dp, 11, g_Scene.ProgressChars);
     sprintf(progressBuffer, "DP %02d [%.*s%.*s]", 
         g_Game.dp,
         progress, 
@@ -171,14 +174,14 @@ static void Render(void) {
     wmove(Window, g_Scene.DPPosY, g_Scene.Width - g_Scene.DPPosX);
     wprintw(Window, "%s", progressBuffer);
 
-    if(g_Game.dpDelta > 0) {
+    if(g_Game.dpDelta != 0) {
         wmove(Window, g_Scene.DPPosY-1, g_Scene.Width - g_Scene.DPPosX+3);
-        wprintw(Window, "+%d", g_Game.dpDelta);
+        wprintw(Window, "%c%d", g_Game.dpDelta>0?'+':'-', abs(g_Game.dpDelta));
     }
 
     // XP
     //////////
-    progress = GetProgressBar(g_Game.xp, 21, g_Scene.ProgressChars);
+    progress = GetProgressBar(g_Game.xp, 54, g_Scene.ProgressChars);
     sprintf(progressBuffer, "XP %02d [%.*s%.*s]", 
         g_Game.xp,
         progress, 
@@ -191,7 +194,7 @@ static void Render(void) {
 
     if(g_Game.xpDelta > 0) {
         wmove(Window, g_Scene.XPPosY-1, g_Scene.Width - g_Scene.XPPosX+3);
-        wprintw(Window, "+%d", g_Game.xpDelta);
+        wprintw(Window, "%c%d", g_Game.xpDelta>0?'+':'-', g_Game.xpDelta);
     }
 
     // Cards
@@ -214,25 +217,16 @@ static void Render(void) {
                 char basicName[8] = {0};
                 if(donsol_card_IsNumeric(card)) {
                     sprintf(basicName, "%d", (int)donsol_card_GetNumericValue(card)+1);
-                } else if(card & CARD_K) {
-                    sprintf(basicName, "K");
-                } else if(card & CARD_Q) {
-                    sprintf(basicName, "Q");
-                } else if(card & CARD_J) {
-                    sprintf(basicName, "J");
-                } else {
-                    sprintf(basicName, "A");
                 }
-
-                if(suit == SUIT_CLUBS) {
-                    sprintf(cardNameBuff, "%s of clubs", basicName);
-                } else if(suit == SUIT_DIAMONDS) {
-                    sprintf(cardNameBuff, "%s of diamonds", basicName);
-                } else if(suit == SUIT_SPADES) {
-                    sprintf(cardNameBuff, "%s of spades", basicName);
-                } else {
-                    sprintf(cardNameBuff, "%s of hearts", basicName);
-                }
+                else if((card & CARD_K) == CARD_K) { sprintf(basicName, "K"); }
+                else if((card & CARD_Q) == CARD_Q) { sprintf(basicName, "Q"); }
+                else if((card & CARD_J) == CARD_J) { sprintf(basicName, "J"); }
+                else if((card & CARD_A) == CARD_A) { sprintf(basicName, "A"); }
+                
+                if(suit == SUIT_CLUBS)         { sprintf(cardNameBuff, "%s of clubs", basicName); }
+                else if(suit == SUIT_DIAMONDS) { sprintf(cardNameBuff, "%s of diamonds", basicName); }
+                else if(suit == SUIT_SPADES)   { sprintf(cardNameBuff, "%s of spades", basicName); }
+                else if(suit == SUIT_HEARTS)   { sprintf(cardNameBuff, "%s of hearts", basicName); }
             }
             u8 largestNameText = 14;
             u8 nameTextLen = strlen(cardNameBuff);

@@ -7,15 +7,24 @@
 typedef enum {
     DONSOL_STATUS_WELCOME,
 
+    // The card trying to be used has already been used
+    DONSOL_STATUS_ALREADY_USED,
+
     DONSOL_STATUS_POTION_WASTED,
     DONSOL_STATUS_POTION_USED,
+
+    DONSOL_SHIELD_EQUIPED,
+    DONSOL_SHIELD_BROKE,
+    DONSOL_WON_FIGHT,
+    DONSOL_LOST_FIGHT,
 
     DONSOL_STATUS_CANT_RUN
 } DonsolStatusUpdate;
 
 typedef struct {
     card_t* dcard;
-    char name[64];
+    char simpleName[32];
+    char name[32];
     u8 power;
     u8 isMonster, isPotion, isShield;
 } DonsolCardDescription_t;
@@ -25,7 +34,8 @@ typedef struct {
     s8 hpDelta, xpDelta, dpDelta;
 
     // current hp/xp/dp
-    u8 hp, xp, dp;
+    s8 hp, xp, dp;
+    s8 shieldBreakLimit;
 
     // restrictions
     u8 canDrink;

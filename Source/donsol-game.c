@@ -84,9 +84,9 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
         desc->isShield = 0;
         desc->power = 21;
         if(*dcard & CARD_JO1) {
-            sprintf(desc->name, "First Donsol 21");
+            sprintf(desc->simpleName, "First Donsol");
         } else {
-            sprintf(desc->name, "Second Donsol 21");
+            sprintf(desc->simpleName, "Second Donsol");
         }
     }
     else if(donsol_card_IsHearts(*dcard)) {
@@ -97,16 +97,11 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
             desc-> isPotion = 1;
             desc->isShield = 0;
             if(desc->power <= 3) {
-                sprintf(desc->name, "Sm Potion %d", (int)desc->power);
+                sprintf(desc->simpleName, "Sm Potion");
             } else if(desc->power <= 8) {
-                sprintf(desc->name, "Md Potion %d", (int)desc->power);
+                sprintf(desc->simpleName, "Md Potion");
             } else {
-                sprintf(desc->name, "Lg Potion %d", (int)desc->power);
-            }
-            if(desc->power == 0) {
-                char tempbitching[256] = {0};
-                sprintf(tempbitching, "%d", (int)*dcard);
-                game->onError(tempbitching);
+                sprintf(desc->simpleName, "Lg Potion");
             }
         } else {
             // white mage
@@ -114,7 +109,8 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
             desc->isMonster = 0;
             desc-> isPotion = 1;
             desc->isShield = 0;
-            sprintf(desc->name, "White Mage %d", (int)desc->power);
+            
+            sprintf(desc->simpleName, "White Mage");
         }
     }
     else if(donsol_card_IsDiamonds(*dcard)) {
@@ -124,18 +120,18 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
             desc-> isPotion = 0;
             desc->isShield = 1;
             if(desc->power <= 3) {
-                sprintf(desc->name, "Buckler %d", (int)desc->power);
+                sprintf(desc->simpleName, "Buckler");
             } else if(desc->power <= 8) {
-                sprintf(desc->name, "Shield %d", (int)desc->power);
+                sprintf(desc->simpleName, "Shield");
             } else {
-                sprintf(desc->name, "Lg Shield %d", (int)desc->power);
+                sprintf(desc->simpleName, "Lg Shield");
             }
         } else {
             desc->power = 11;
             desc->isMonster = 0;
-            desc-> isPotion = 1;
-            desc->isShield = 0;
-            sprintf(desc->name, "Red Mage %d", (int)desc->power);
+            desc-> isPotion = 0;
+            desc->isShield = 1;
+            sprintf(desc->simpleName, "Red Mage");
         }
     }
     else if(donsol_card_IsClubs(*dcard) || donsol_card_IsSpades(*dcard)) {
@@ -146,29 +142,9 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
             desc-> isPotion = 0;
             desc->isShield = 0;
 
-            static char const* clubNames[] = {
-                "??", // A
-                "Rat", // 2
-                "Bat", // 3
-                "Imp", // 4
-                "Goblin", // 5
-                "Orc", // 6
-                "Ogre", // 7
-                "Beholder", // 8
-                "Medusa", // 9
-                "Demon"}; // 10
-            static char const* spadeNames[] = {
-                "??", // A
-                "Slime", // 2
-                "Tunneler", // 3
-                "Fiend", // 4
-                "Drake", // 5
-                "Specter", // 6
-                "Ghost", // 7
-                "Elemental", // 8
-                "Witch", // 9
-                "Familiar"}; // 10
-            sprintf(desc->name, "%s %d", donsol_card_IsClubs(*dcard) ? clubNames[desc->power-1] : spadeNames[desc->power-1], (int)desc->power);
+            static char const* clubNames[] = { "??", "Rat", "Bat", "Imp", "Goblin", "Orc", "Ogre", "Beholder", "Medusa", "Demon"};
+            static char const* spadeNames[] = { "??", "Slime", "Tunneler", "Fiend", "Drake", "Specter", "Ghost", "Elemental", "Witch", "Familiar"};
+            sprintf(desc->simpleName, "%s", donsol_card_IsClubs(*dcard) ? clubNames[desc->power-1] : spadeNames[desc->power-1]);
         } else {
             desc->isMonster = 1;
             desc-> isPotion = 0;
@@ -176,25 +152,27 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
             switch(numeric) {
                 case CARD_J:
                     desc->power = 11;
-                    sprintf(desc->name, "Consort %d", (int)desc->power);
+                    sprintf(desc->simpleName, "Consort");
                     break;
                 case CARD_Q:
                     desc->power = 13;
-                    sprintf(desc->name, "Queen %d", (int)desc->power);
+                    sprintf(desc->simpleName, "Queen");
                     break;
                 case CARD_K:
                     desc->power = 15;
-                    sprintf(desc->name, "Regnant %d", (int)desc->power);
+                    sprintf(desc->simpleName, "Regnant");
                     break;
                 case CARD_A:
                     desc->power = 17;
-                    sprintf(desc->name, "Empress %d", (int)desc->power);
+                    sprintf(desc->simpleName, "Empress");
                     break;
             }
         }
     } else {
         if(game->onError) game->onError("Couldn't determine which card case to handle");
     }
+
+    sprintf(desc->name, "%s : %d", desc->simpleName, (int)desc->power);
 }
 
 static void donsol_game_clear_deltas(DonsolGame_t* game) {
@@ -222,19 +200,94 @@ static void donsol_game_pick_potion(DonsolGame_t* game, card_t *dcard, u8 val) {
 }
 
 static void donsol_game_pick_shield(DonsolGame_t* game, card_t *dcard, int power) {
+    donsol_game_clear_deltas(game);
+    
+    game->dpDelta = (s8)power - (s8)game->dp;
+    game->dp = power;
+    game->shieldBreakLimit = -1;
+    
+    game->xp++;
+    game->xpDelta = 1;
+
     game->canDrink = 1;
 }
 
 static void donsol_game_pick_enemy(DonsolGame_t* game, card_t *dcard, int atk) {
-    
+    donsol_game_clear_deltas(game);
+
+    int damage = atk;
+    if(game->dp > 0) {
+        u8 shieldIsDamaged = game->shieldBreakLimit >= 0;
+        if(shieldIsDamaged && atk > game->shieldBreakLimit) {
+            game->dpDelta = -game->dp;
+            game->dp = 0;
+            game->shieldBreakLimit = -1;
+            game->onStatusUpdate(DONSOL_SHIELD_BROKE, "Broke!");
+        } else {
+            game->shieldBreakLimit = atk;
+            damage = atk > game->dp ? abs(atk - (int)game->dp) : 0;
+        }
+    }
+
+    if(damage > 0) {
+        game->hpDelta = -damage;
+        game->hp -= damage;
+    }
+
+    game->xp++;
+    game->xpDelta = 1;
 
     game->canDrink = 1;
     game->canRun = 1;
+
+    /*
+console.log('<attack>' + card.value)
+    let attack_value = card.value
+    let damages = attack_value
+
+    // Shield
+    if (this.shield.value > 0) {
+      // Damaged shield
+      if (this.shield.is_damaged() === true && attack_value >= this.shield.break_limit) {
+        this.shield.value = 0
+        this.shield.break_limit = null
+        donsol.player.shield.add_event('<span>Broke!</span>')
+      } else {
+        this.shield.break_limit = attack_value
+        damages = attack_value > this.shield.value ? Math.abs(attack_value - this.shield.value) : 0
+      }
+    }
+
+    // Damages went through
+    if (damages > 0) {
+      this.health.value -= damages
+    }
+
+    // Timeline
+    if (this.health.value < 1) {
+      donsol.player.health.add_event('-' + damages)
+      donsol.timeline.add_event('<span>The ' + card.name + ' killed you!</span>')
+      donsol.board.dungeon_failed()
+      this.update()
+    } else if (damages > 0) {
+      donsol.player.health.add_event('-' + damages)
+      donsol.timeline.add_event('Battled the ' + card.name + '.')
+    }
+
+    // Experience
+    donsol.player.experience.add_event('+1')
+
+    this.can_drink = true
+    donsol.is_complete = false
+    this.shield.update()
+    this.health.update()
+    */
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
 void donsol_game_pick_run(DonsolGame_t* game) {
+    donsol_game_clear_deltas(game);
     if(!game->canRun) {
         game->onStatusUpdate(DONSOL_STATUS_CANT_RUN, "You can't escape this room.");
         return;
@@ -278,8 +331,13 @@ void donsol_game_pick_card(DonsolGame_t* game, u8 index) {
         return;
     }
 
+    if(*desc->dcard & CARDSTATE_FLIPPED) {
+        donsol_game_clear_deltas(game);
+        game->onStatusUpdate(DONSOL_STATUS_ALREADY_USED, "Can't do that again");
+        return;
+    }
+
     if(desc->isMonster) {
-        // donsol
         donsol_game_pick_enemy(game, dcard, desc->power);
     }
     else if(desc->isShield) {

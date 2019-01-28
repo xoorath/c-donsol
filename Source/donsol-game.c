@@ -1,6 +1,7 @@
 #include "donsol-game.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 const u8 g_DeckSize = 54;
 static card_t g_Deck[54] = {
@@ -76,8 +77,21 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
     
     card_t* dcard = &g_Deck[deckIndex];
     DonsolCardDescription_t* desc = &game->slots[slotIndex];    
-
+    sprintf(desc->simpleName, "unknown");
+    sprintf(desc->name, "unknown : ??");
+    desc->isMonster = 1;
+    desc->isPotion = 0;
+    desc->isShield = 0;
+    desc->power = 1;
     desc->dcard = dcard;
+
+    if(desc->dcard == 0) {
+        char errBuff[64] = {0};
+        sprintf(errBuff, "Not setting a card [%d %d]", (int)slotIndex, (int)deckIndex);
+        if(game->onError) game->onError(errBuff);
+        return;
+    }
+
     if(donsol_card_IsJoker(*dcard)) {
         desc->isMonster = 1;
         desc-> isPotion = 0;
@@ -135,9 +149,9 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
         }
     }
     else if(donsol_card_IsClubs(*dcard) || donsol_card_IsSpades(*dcard)) {
-        u8 numeric = donsol_card_GetNumericValue(*dcard) + 1;
+        u8 numeric = donsol_card_GetNumericValue(*dcard);
         if(donsol_card_IsNumeric(*dcard)) {
-            desc->power = numeric;
+            desc->power = numeric + 1;
             desc->isMonster = 1;
             desc-> isPotion = 0;
             desc->isShield = 0;
@@ -166,6 +180,13 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
                     desc->power = 17;
                     sprintf(desc->simpleName, "Empress");
                     break;
+                default:
+                    {
+                        char errBuff[64] = {0};
+                        sprintf(errBuff, "Couldnt figure out face card type. numeric: %d dcard: %d", (int)numeric, (int)*dcard);
+                        if(game->onError) game->onError(errBuff);
+                    }
+                    return;
             }
         }
     } else {
@@ -173,6 +194,54 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
     }
 
     sprintf(desc->name, "%s : %d", desc->simpleName, (int)desc->power);
+}
+
+static card_t* donsol_game_next_unflipped_card(DonsolGame_t* game, card_t* startingCard) {
+    if(0 == startingCard) {
+        return 0;
+    }
+
+    for(card_t* i = startingCard+1; i < &g_Deck[g_DeckSize]; ++i) {
+        if(!donsol_card_IsFlipped(*i)) {
+            return i;
+        }
+    }
+    for(card_t* i = &g_Deck[0]; i < startingCard; ++i) {
+        if(!donsol_card_IsFlipped(*i)) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+static void donsol_game_deal4(DonsolGame_t* game) {
+    card_t* newSlots[4] = {0};
+    newSlots[0] = donsol_game_next_unflipped_card(game, game->slots[3].dcard);
+    newSlots[1] = donsol_game_next_unflipped_card(game, newSlots[0]);
+    newSlots[2] = donsol_game_next_unflipped_card(game, newSlots[1]);
+    newSlots[3] = donsol_game_next_unflipped_card(game, newSlots[2]);
+
+    // eliminate duplicates (happens if we wrap around the deck)
+    for(u8 i = 0; i < 4; ++i) {
+        for(u8 j = 0; j < 4; ++j) {
+            if(i != j) {
+                if(newSlots[i] == newSlots[j]) {
+                    newSlots[j] = 0;
+                }
+            }
+        }
+    }
+
+    for(u8 i = 0; i < 4; ++i) {
+        if(newSlots[i] != 0) {
+            for(u8 j = 0; j < g_DeckSize; ++j) {
+                if(&g_Deck[j] == newSlots[i]) {
+                    donsol_game_set_slot(game, i, j);
+                    break;
+                }
+            }
+        }
+    }
 }
 
 static void donsol_game_clear_deltas(DonsolGame_t* game) {
@@ -212,7 +281,7 @@ static void donsol_game_pick_shield(DonsolGame_t* game, card_t *dcard, int power
     game->canDrink = 1;
 }
 
-static void donsol_game_pick_enemy(DonsolGame_t* game, card_t *dcard, int atk) {
+static u8 donsol_game_pick_enemy(DonsolGame_t* game, card_t *dcard, int atk) {
     donsol_game_clear_deltas(game);
 
     int damage = atk;
@@ -234,64 +303,79 @@ static void donsol_game_pick_enemy(DonsolGame_t* game, card_t *dcard, int atk) {
         game->hp -= damage;
     }
 
+    DonsolCardDescription_t* cd = 0;
+    for(u8 i = 0; i < 4; ++i) {
+        if(dcard == game->slots[i].dcard) {
+            cd = &game->slots[i];
+            break;
+        }
+    }
+    if(!cd) {
+        game->onError("Couldnt find card description for enemy.");
+        return 0;
+    }
+
+    if(game->hp < 1) {
+        char msgBuff[32] = {0};
+        sprintf(msgBuff, "The %s killed you!", cd->simpleName);
+        game->wonOrDied = 1;
+        game->onStatusUpdate(DONSOL_LOST_FIGHT, msgBuff);
+        return 0;
+    } else {
+        char msgBuff[32] = {0};
+        sprintf(msgBuff, "Battled the %s.", cd->simpleName);
+        game->onStatusUpdate(DONSOL_LOST_FIGHT, msgBuff);
+    }
+
     game->xp++;
     game->xpDelta = 1;
 
     game->canDrink = 1;
     game->canRun = 1;
+    return 1;
+}
 
-    /*
-console.log('<attack>' + card.value)
-    let attack_value = card.value
-    let damages = attack_value
-
-    // Shield
-    if (this.shield.value > 0) {
-      // Damaged shield
-      if (this.shield.is_damaged() === true && attack_value >= this.shield.break_limit) {
-        this.shield.value = 0
-        this.shield.break_limit = null
-        donsol.player.shield.add_event('<span>Broke!</span>')
-      } else {
-        this.shield.break_limit = attack_value
-        damages = attack_value > this.shield.value ? Math.abs(attack_value - this.shield.value) : 0
-      }
+static void donsol_check_for_stage_completion(DonsolGame_t* game) {
+    for(int i = 0; i < 4; ++i) {
+        if(game->slots[i].dcard != 0 && !donsol_card_IsFlipped(*game->slots[i].dcard)) {
+            // at least one card left to deal with
+            return;
+        }
     }
-
-    // Damages went through
-    if (damages > 0) {
-      this.health.value -= damages
+    u8 anyRemaining = 0;
+    for(int i = 0; i < g_DeckSize; ++i) {
+        if(!donsol_card_IsFlipped(g_Deck[i])) {
+            anyRemaining = 1;
+            break;
+        }
     }
-
-    // Timeline
-    if (this.health.value < 1) {
-      donsol.player.health.add_event('-' + damages)
-      donsol.timeline.add_event('<span>The ' + card.name + ' killed you!</span>')
-      donsol.board.dungeon_failed()
-      this.update()
-    } else if (damages > 0) {
-      donsol.player.health.add_event('-' + damages)
-      donsol.timeline.add_event('Battled the ' + card.name + '.')
+    if(!anyRemaining) {
+        game->wonOrDied = 1;
+        game->onStatusUpdate(DONSOL_STATUS_YOU_WIN, "You win.");
+    } else {
+        donsol_game_deal4(game);
     }
-
-    // Experience
-    donsol.player.experience.add_event('+1')
-
-    this.can_drink = true
-    donsol.is_complete = false
-    this.shield.update()
-    this.health.update()
-    */
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
 void donsol_game_pick_run(DonsolGame_t* game) {
+    if(game->wonOrDied) {
+        donsol_game_start(game);
+    }
     donsol_game_clear_deltas(game);
+
+    if(!game->hasTakenAction) {
+        donsol_game_deal4(game);
+        return;
+    }
+
     if(!game->canRun) {
         game->onStatusUpdate(DONSOL_STATUS_CANT_RUN, "You can't escape this room.");
         return;
     }
+
+    donsol_game_deal4(game);
 
     game->canDrink = 1;
     game->canRun = 0;
@@ -300,6 +384,8 @@ void donsol_game_pick_run(DonsolGame_t* game) {
 void donsol_game_start(DonsolGame_t* game) {
     donsol_card_ClearFlippedBit(g_Deck, g_DeckSize);
     donsol_card_ShuffleDeck(g_Deck, g_DeckSize);
+    // slots become invalid as soon as we shuffle anyways.
+    memset(game->slots, 0, sizeof(game->slots));
 
     game->hp = 21;
     game->dp = 0;
@@ -308,6 +394,11 @@ void donsol_game_start(DonsolGame_t* game) {
     donsol_game_clear_deltas(game);
 
     game->canDrink = 1;
+    game->canRun = 1;
+    game->hasTakenAction = 0;
+
+    game->wonOrDied = 0;
+
     donsol_game_set_slot(game, 0, 0);
     donsol_game_set_slot(game, 1, 1);
     donsol_game_set_slot(game, 2, 2);
@@ -317,6 +408,11 @@ void donsol_game_start(DonsolGame_t* game) {
 }
 
 void donsol_game_pick_card(DonsolGame_t* game, u8 index) {
+    if(game->wonOrDied) {
+        return;
+    }
+    // from this point forward running has a cost.
+    game->hasTakenAction = 1;
 
     if(index == 0 || index > 4) {
         if(game->onError) game->onError("pick card out of range.");
@@ -338,7 +434,11 @@ void donsol_game_pick_card(DonsolGame_t* game, u8 index) {
     }
 
     if(desc->isMonster) {
-        donsol_game_pick_enemy(game, dcard, desc->power);
+        if(!donsol_game_pick_enemy(game, dcard, desc->power)) {
+            // You died, don't flip over the card that killed you,
+            // and don't move to the next room if it was the last card
+            return;
+        }
     }
     else if(desc->isShield) {
         donsol_game_pick_shield(game, dcard, desc->power);
@@ -351,7 +451,7 @@ void donsol_game_pick_card(DonsolGame_t* game, u8 index) {
 
     *dcard |= CARDSTATE_FLIPPED;
     
-
+    donsol_check_for_stage_completion(game);
 }
 
 void donsol_game_quit(DonsolGame_t* game) {

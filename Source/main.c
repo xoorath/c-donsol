@@ -10,6 +10,19 @@
 
 #define INPUT_IS(x) (0 == strcmp(InputBuffer, x))
 
+enum {
+    C_DEFAULT = 1,
+    C_WHITE_ON_BLACK = 1,
+    C_RED_ON_BLACK = 2,
+    
+    C_BLACK_ON_WHITE = 3,
+    C_RED_ON_WHITE = 4,
+
+    C_WHITE_ON_RED = 5,
+    C_BLACK_ON_RED = 6,
+};
+
+
 //////////////////////////////////////////////////////////////////////////////// Data
 static DonsolGame_t g_Game;
 
@@ -41,10 +54,10 @@ static struct Scene_t {
     .StatusText = {0},
     .StatusPosX = 5, .StatusPosY = 3,
 
-    .InputHelpText = "cards: 1 2 3 4   run: r   restart: x   quit: q",
+    .InputHelpText = "cards: 1 2 3 4   run: space   restart: x   quit: q",
 
     // Where to take player input; how much input to take
-    .InputPosX = 39, 
+    .InputPosX = 37, 
     .InputPosY = 5, // from screen bottom
     
     // How many characters are represented in the progress bars
@@ -109,7 +122,7 @@ static void Update(void) {
         case 'x':
             StartGame();
             break;
-        case 'r':
+        case ' ':
             donsol_game_pick_run(&g_Game);
             break;
         case '1':
@@ -208,13 +221,13 @@ static void Render(void) {
         u8 isFlipped = donsol_card_IsFlipped(card);
         
         // Handle top text
+        char basicName[3] = {' ', ' ', '\0'}; // reuse for card corner
         if(!isFlipped) {
             char cardNameBuff[16] = {0};
 
             if(isJoke) {
                 sprintf(cardNameBuff, "Joker");
             } else {
-                char basicName[8] = {0};
                 if(donsol_card_IsNumeric(card)) {
                     sprintf(basicName, "%d", (int)donsol_card_GetNumericValue(card)+1);
                 }
@@ -236,25 +249,45 @@ static void Render(void) {
         }
 
         // Handle card art
+        int artColor = COLOR_PAIR(C_DEFAULT);
         if(isFlipped) {
+            artColor = COLOR_PAIR(C_BLACK_ON_RED) | A_BOLD;
             art = cdonsol_art_back;
         } else if(isJoke) {
+            artColor = COLOR_PAIR(C_WHITE_ON_RED) | A_BOLD;
             art = cdonsol_art_joker;
         } else if(suit == SUIT_HEARTS) {
+            artColor = COLOR_PAIR(C_RED_ON_WHITE) | A_BOLD;
             art = cdonsol_art_heart;
         } else if(suit == SUIT_DIAMONDS) {
+            artColor = COLOR_PAIR(C_RED_ON_WHITE) | A_BOLD;
             art = cdonsol_art_diamond;
         } else if(suit == SUIT_CLUBS) {
+            artColor = COLOR_PAIR(C_BLACK_ON_WHITE) | A_BOLD;
             art = cdonsol_art_club;
         } else if(suit == SUIT_SPADES) {
+            artColor = COLOR_PAIR(C_BLACK_ON_WHITE) | A_BOLD;
             art = cdonsol_art_spade;
         }
+        attron(artColor);
         for(u16 y = 0; y < cdonsol_art_height; ++y) {
             for(u16 x = 0; x < cdonsol_art_width; ++x) {
                 wmove(Window, g_Scene.CardsY+y, g_Scene.CardsX+x + (i*g_Scene.CardSpacing));
                 waddch(Window, art[x+y*cdonsol_art_width]);
             }
         }
+        if(!isFlipped && !isJoke) {
+            if(basicName[1]) {
+                wmove(Window, g_Scene.CardsY, g_Scene.CardsX + cdonsol_art_width-3 + (i*g_Scene.CardSpacing));
+                waddch(Window, basicName[0]);
+                waddch(Window, basicName[1]);
+            } else if(basicName[0]) {
+                wmove(Window, g_Scene.CardsY, g_Scene.CardsX + cdonsol_art_width-2 + (i*g_Scene.CardSpacing));
+                waddch(Window, basicName[0]);
+            }
+        }
+
+        attroff(artColor);
 
         // handle bottom text
         if(!isFlipped) {
@@ -340,6 +373,16 @@ int main() {
     }
     // size the window
     wresize(Window, g_Scene.Height, g_Scene.Width);
+
+    // Setup colors
+    start_color();
+    init_pair(C_WHITE_ON_BLACK, COLOR_WHITE, COLOR_BLACK);
+    init_pair(C_RED_ON_BLACK, COLOR_RED, COLOR_BLACK);
+    init_pair(C_BLACK_ON_WHITE, COLOR_BLACK, COLOR_WHITE);
+    init_pair(C_RED_ON_WHITE, COLOR_RED, COLOR_WHITE);
+    init_pair(C_WHITE_ON_RED, COLOR_WHITE, COLOR_RED);
+    init_pair(C_BLACK_ON_RED, COLOR_BLACK, COLOR_RED);
+
 
     // hide the cursor
     curs_set(0);

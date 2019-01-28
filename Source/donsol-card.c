@@ -7,8 +7,7 @@
 #   define donsolRandom rand
 #endif
 
-u8 donsol_card_IsJoker(card_t card)
-{
+u8 donsol_card_IsJoker(card_t card) {
   return (card & CARD_MASK) >= CARD_JO1;
 }
 

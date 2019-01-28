@@ -18,7 +18,9 @@ typedef enum {
     DONSOL_WON_FIGHT,
     DONSOL_LOST_FIGHT,
 
-    DONSOL_STATUS_CANT_RUN
+    DONSOL_STATUS_CANT_RUN,
+
+    DONSOL_STATUS_YOU_WIN
 } DonsolStatusUpdate;
 
 typedef struct {
@@ -40,6 +42,12 @@ typedef struct {
     // restrictions
     u8 canDrink;
     u8 canRun;
+
+    // lets you run infinitely before taking you first action
+    u8 hasTakenAction;
+
+    // only restarting actions will be allowed
+    u8 wonOrDied;
 
     // The 4 active slots.
     DonsolCardDescription_t slots[4];

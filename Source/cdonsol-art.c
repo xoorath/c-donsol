@@ -1,40 +1,52 @@
 ﻿#include "cdonsol-art.h"
 
-u16 cdonsol_art_width = 7;
-u16 cdonsol_art_height = 4;
+u16 cdonsol_art_width = 9;
+u16 cdonsol_art_height = 6;
 
 char const* cdonsol_art_spade =
-"   .   "
-"  /.\\  "
-" (_._) "
-"   |   ";
+"         "
+"    .    "
+"   /.\\   "
+"  (_._)  "
+"    |    "
+"         ";
 
 char const* cdonsol_art_club =
-"   _   "
-"  ( )  "
-"(_   _)"
-"   |   ";
+"         "
+"    _    "
+"   ( )   "
+" (_   _) "
+"    |    "
+"         ";
 
 char const* cdonsol_art_joker =
-" _____ "
-"( ooo )"
-"(_.V._)"
-"{}{ }{}";
+"         "
+"  _____  "
+" ( ooo ) "
+" (_.V._) "
+" {}{ }{} "
+"         ";
 
 char const* cdonsol_art_heart =
-"  ]o[  "
-"  | |  "
-" /---\\ "
-"[_____]";
+"         "
+"   ]o[   "
+"   | |   "
+"  /---\\  "
+" [_____] "
+"         ";
 
 char const* cdonsol_art_diamond =
-"  /-\\  "
-"//---\\\\"
-"\\\\---//"
-"  \\-/  ";
+"         "
+"   /-\\   "
+" //---\\\\ "
+" \\\\---// "
+"   \\-/   "
+"         ";
 
 char const* cdonsol_art_back =
-".=====."
-"|/////|"
-"|\\\\\\\\\\|"
-".=====.";
+"\\\\\\\\\\\\\\\\\\"
+"/////////"
+"\\\\\\\\\\\\\\\\\\"
+"/////////"
+"\\\\\\\\\\\\\\\\\\"
+"/////////";

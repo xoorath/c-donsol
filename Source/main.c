@@ -49,7 +49,7 @@ static struct Scene_t {
     .Width = 120, .Height = 26,
 
     // Where to draw cards, how far appart
-    .CardsX = 12, .CardsY = 10, .CardSpacing = 30,
+    .CardsX = 13, .CardsY = 10, .CardSpacing = 27,
     
     .StatusText = {0},
     .StatusPosX = 5, .StatusPosY = 3,
@@ -174,7 +174,10 @@ static void Render(void) {
         wmove(Window, g_Scene.HPPosY-1, g_Scene.Width - g_Scene.HPPosX+3);
         wprintw(Window, "%c%d", g_Game.hpDelta>0?'+':'-', abs(g_Game.hpDelta));
     } else if (g_Scene.PotionJustWasted) {
-        wmove(Window, g_Scene.HPPosY-1, g_Scene.Width - g_Scene.HPPosX);
+        wmove(Window, g_Scene.HPPosY-1, g_Scene.Width - g_Scene.HPPosX+3);
+        wprintw(Window, "+0");
+
+        wmove(Window, g_Scene.HPPosY+1, g_Scene.Width - g_Scene.HPPosX+7);
         wprintw(Window, "wasted");
     }
 
@@ -270,10 +273,18 @@ static void Render(void) {
             art = cdonsol_art_joker;
         } else if(suit == SUIT_HEARTS) {
             artColor = COLOR_PAIR(C_RED_ON_WHITE) | A_BOLD;
-            art = cdonsol_art_heart;
+            if(donsol_card_IsNumeric(card)) {
+                art = cdonsol_art_heart;
+            } else {
+                art = cdonsol_art_white_mage;
+            }
         } else if(suit == SUIT_DIAMONDS) {
             artColor = COLOR_PAIR(C_RED_ON_WHITE) | A_BOLD;
-            art = cdonsol_art_diamond;
+            if(donsol_card_IsNumeric(card)) {
+                art = cdonsol_art_diamond;
+            } else {
+                art = cdonsol_art_red_mage;
+            }
         } else if(suit == SUIT_CLUBS) {
             artColor = COLOR_PAIR(C_BLACK_ON_WHITE) | A_BOLD;
             art = cdonsol_art_club;

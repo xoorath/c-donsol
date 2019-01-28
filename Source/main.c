@@ -19,7 +19,7 @@ enum {
     C_RED_ON_WHITE = 4,
 
     C_WHITE_ON_RED = 5,
-    C_BLACK_ON_RED = 6,
+    C_BLACK_ON_RED = 6
 };
 
 
@@ -156,15 +156,19 @@ static void Render(void) {
     //////////
     char progressBuffer[32] = {0};
     int progress = GetProgressBar(g_Game.hp, 21, g_Scene.ProgressChars);
-    sprintf(progressBuffer, "HP %02d [%.*s%.*s]", 
-        g_Game.hp, 
+    sprintf(progressBuffer, "HP %02d [", 
+        g_Game.hp);
+    wmove(Window, g_Scene.HPPosY, g_Scene.Width - g_Scene.HPPosX);
+    wprintw(Window, "%s", progressBuffer);
+    sprintf(progressBuffer, "%.*s%.*s",
         progress, 
         g_Scene.ProgressCharFull,
         g_Scene.ProgressChars-progress,
         g_Scene.ProgressCharEmpty);
-    
-    wmove(Window, g_Scene.HPPosY, g_Scene.Width - g_Scene.HPPosX);
+    attron(COLOR_PAIR(C_RED_ON_BLACK));
     wprintw(Window, "%s", progressBuffer);
+    attroff(COLOR_PAIR(C_RED_ON_BLACK));
+    wprintw(Window, "]", progressBuffer);
 
     if(g_Game.hpDelta != 0 && !g_Scene.PotionJustWasted) {
         wmove(Window, g_Scene.HPPosY-1, g_Scene.Width - g_Scene.HPPosX+3);
@@ -190,6 +194,14 @@ static void Render(void) {
     if(g_Game.dpDelta != 0) {
         wmove(Window, g_Scene.DPPosY-1, g_Scene.Width - g_Scene.DPPosX+3);
         wprintw(Window, "%c%d", g_Game.dpDelta>0?'+':'-', abs(g_Game.dpDelta));
+    }
+
+    if(g_Game.dp > 0 && g_Game.shieldBreakLimit < 0) {
+        wmove(Window, g_Scene.DPPosY+1, g_Scene.Width - g_Scene.DPPosX + 7);
+        wprintw(Window, "fresh");
+    } else if(g_Game.dp > 0 && g_Game.shieldBreakLimit > 0) {
+        wmove(Window, g_Scene.DPPosY+1, g_Scene.Width - g_Scene.DPPosX + 7);
+        wprintw(Window, "worn (%d)", (int)g_Game.shieldBreakLimit);
     }
 
     // XP
@@ -382,7 +394,6 @@ int main() {
     init_pair(C_RED_ON_WHITE, COLOR_RED, COLOR_WHITE);
     init_pair(C_WHITE_ON_RED, COLOR_WHITE, COLOR_RED);
     init_pair(C_BLACK_ON_RED, COLOR_BLACK, COLOR_RED);
-
 
     // hide the cursor
     curs_set(0);

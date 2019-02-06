@@ -24,7 +24,7 @@ typedef enum {
 } DonsolStatusUpdate;
 
 typedef struct {
-    card_t* dcard;
+    Card_t* dcard;
     char simpleName[32];
     char name[32];
     u8 power;

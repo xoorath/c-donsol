@@ -8,8 +8,6 @@
 #include "donsol-game.h"
 #include "cdonsol-art.h"
 
-#define INPUT_IS(x) (0 == strcmp(InputBuffer, x))
-
 enum {
     C_DEFAULT = 1,
     C_WHITE_ON_BLACK = 1,
@@ -27,29 +25,29 @@ enum {
 static DonsolGame_t g_Game;
 
 static struct Scene_t {
-    int Width, Height;
+    u8 Width, Height;
     
-    int CardsX, CardsY, CardSpacing;
+    u8 CardsX, CardsY, CardSpacing;
     
     char StatusText[64];
-    int StatusPosX, StatusPosY;
+    u8 StatusPosX, StatusPosY;
 
     char const* InputHelpText;
-    int InputPosX, InputPosY;
+    u8 InputPosX, InputPosY;
 
-    int ProgressChars;
+    u8 ProgressChars;
     char *ProgressCharFull, *ProgressCharEmpty;
 
     u8 PotionJustWasted;
-    int HPPosX, HPPosY;
-    int DPPosX, DPPosY;
-    int XPPosX, XPPosY;
+    u8 HPPosX, HPPosY;
+    u8 DPPosX, DPPosY;
+    u8 XPPosX, XPPosY;
 } g_Scene = {
     // How big is the play area
     .Width = 120, .Height = 26,
 
     // Where to draw cards, how far appart
-    .CardsX = 13, .CardsY = 10, .CardSpacing = 27,
+    .CardsX = 13, .CardsY = 9, .CardSpacing = 27,
     
     .StatusText = {0},
     .StatusPosX = 5, .StatusPosY = 3,
@@ -75,9 +73,8 @@ static struct Scene_t {
     .XPPosY=3,
 };
 
-char InputBuffer[1024] = {0};
 char ErrorBuffer[1024] = {0};
-WINDOW *Window = 0, *dialogue = 0;
+WINDOW *Window = 0;
 
 //////////////////////////////////////////////////////////////////////////////// API
 
@@ -228,7 +225,7 @@ static void Render(void) {
     // Cards
     //////////
     for(u8 i = 0; i < 4; ++i) {
-        card_t card = *g_Game.slots[i].dcard;
+        Card_t card = *g_Game.slots[i].dcard;
         char const* art = NULL;
 
         u8 suit = donsol_card_GetSuit(card);
@@ -343,44 +340,41 @@ static void Render(void) {
 static void StartGame(void) {
 #define ZERO_ARR(x) memset(x, 0, sizeof(x)/sizeof(*x));
     donsol_game_start(&g_Game);
-    ZERO_ARR(InputBuffer);
 #undef ZERO_ARR
 }
 
 //////////////////////////////////////////////////////////////////////////////// Exit
 static void Exit(void) {
-    dialogue = newwin(g_Scene.Height/2, g_Scene.Width/2, g_Scene.Height/4, g_Scene.Width/4);
-    if(0 == dialogue) {
-        goto exit_label;
-    }
+    WINDOW *dialogue = newwin(g_Scene.Height/2, g_Scene.Width/2, g_Scene.Height/4, g_Scene.Width/4);
+    if(0 != dialogue) {
+        
+        box(dialogue, 0, 0);
 
-    box(dialogue, 0, 0);
-
-    int selected = 0;
-    while(!selected) {
-        wmove(dialogue, 6, 24);
-        wprintw(dialogue, "Quit? (Y/N)");
-        wmove(dialogue, 0, 0);
-        switch(wgetch(dialogue)) {
-            default:
-                break;
-            case 'y':
-            case 'Y':
-                selected = 1;
-                break;
-            case 27: // esc
-            case 'n':
-            case 'N':
-                delwin(dialogue);
-                dialogue = 0;
-                return;
+        int selected = 0;
+        while(!selected) {
+            wmove(dialogue, 6, 24);
+            wprintw(dialogue, "Quit? (Y/N)");
+            wmove(dialogue, 0, 0);
+            switch(wgetch(dialogue)) {
+                default:
+                    break;
+                case 'y':
+                case 'Y':
+                    selected = 1;
+                    break;
+                case 27: // esc
+                case 'n':
+                case 'N':
+                    delwin(dialogue);
+                    dialogue = 0;
+                    return;
+            }
         }
+
+        delwin(dialogue);
+        dialogue = 0;
     }
 
-    delwin(dialogue);
-    dialogue = 0;
-
-exit_label:
     donsol_game_quit(&g_Game);
     delwin(Window);
     endwin();

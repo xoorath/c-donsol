@@ -7,8 +7,8 @@ char const* cdonsol_art_spade =
 "           "
 "           "
 "     .     "
-"    /.\\    "
-"   (_._)   "
+"    / \\    "
+"   (_,_)   "
 "     |     "
 "           "
 "           ";
@@ -36,9 +36,9 @@ char const* cdonsol_art_joker =
 char const* cdonsol_art_heart =
 "           "
 "           "
-"    ]o[    "
+"    ]U[    "
 "    | |    "
-"   /---\\   "
+"   /   \\   "
 "  [_____]  "
 "           "
 "           ";
@@ -68,10 +68,10 @@ char const* cdonsol_art_red_mage =
 char const* cdonsol_art_diamond =
 "           "
 "           "
-"    /-\\    "
-"  //---\\\\  "
-"  \\\\---//  "
-"    \\-/    "
+"    / \\    "
+"  //   \\\\  "
+"  \\\\   //  "
+"    \\ /    "
 "           "
 "           ";
 

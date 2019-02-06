@@ -4,7 +4,7 @@
 #include <string.h>
 
 const u8 g_DeckSize = 54;
-static card_t g_Deck[54] = {
+static Card_t g_Deck[54] = {
     CARD_JO1,
     CARD_JO2,
 
@@ -75,7 +75,7 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
         return;
     }
     
-    card_t* dcard = &g_Deck[deckIndex];
+    Card_t* dcard = &g_Deck[deckIndex];
     DonsolCardDescription_t* desc = &game->slots[slotIndex];    
     sprintf(desc->simpleName, "unknown");
     sprintf(desc->name, "unknown : ??");
@@ -196,17 +196,17 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
     sprintf(desc->name, "%s : %d", desc->simpleName, (int)desc->power);
 }
 
-static card_t* donsol_game_next_unflipped_card(DonsolGame_t* game, card_t* startingCard) {
+static Card_t* donsol_game_next_unflipped_card(DonsolGame_t* game, Card_t* startingCard) {
     if(0 == startingCard) {
         return 0;
     }
 
-    for(card_t* i = startingCard+1; i < &g_Deck[g_DeckSize]; ++i) {
+    for(Card_t* i = startingCard+1; i < &g_Deck[g_DeckSize]; ++i) {
         if(!donsol_card_IsFlipped(*i)) {
             return i;
         }
     }
-    for(card_t* i = &g_Deck[0]; i < startingCard; ++i) {
+    for(Card_t* i = &g_Deck[0]; i < startingCard; ++i) {
         if(!donsol_card_IsFlipped(*i)) {
             return i;
         }
@@ -215,7 +215,7 @@ static card_t* donsol_game_next_unflipped_card(DonsolGame_t* game, card_t* start
 }
 
 static void donsol_game_deal4(DonsolGame_t* game) {
-    card_t* newSlots[4] = {0};
+    Card_t* newSlots[4] = {0};
     newSlots[0] = donsol_game_next_unflipped_card(game, game->slots[3].dcard);
     newSlots[1] = donsol_game_next_unflipped_card(game, newSlots[0]);
     newSlots[2] = donsol_game_next_unflipped_card(game, newSlots[1]);
@@ -248,7 +248,7 @@ static void donsol_game_clear_deltas(DonsolGame_t* game) {
     game->xpDelta = game->hpDelta = game->dpDelta = 0;
 }
 
-static void donsol_game_pick_potion(DonsolGame_t* game, card_t *dcard, u8 val) {
+static void donsol_game_pick_potion(DonsolGame_t* game, Card_t *dcard, u8 val) {
     donsol_game_clear_deltas(game);
     if(!game->canDrink) {
         game->onStatusUpdate(DONSOL_STATUS_POTION_WASTED, "Potion Wasted");
@@ -268,7 +268,7 @@ static void donsol_game_pick_potion(DonsolGame_t* game, card_t *dcard, u8 val) {
     game->canRun = 1;
 }
 
-static void donsol_game_pick_shield(DonsolGame_t* game, card_t *dcard, int power) {
+static void donsol_game_pick_shield(DonsolGame_t* game, Card_t *dcard, int power) {
     donsol_game_clear_deltas(game);
     
     game->dpDelta = (s8)power - (s8)game->dp;
@@ -281,7 +281,7 @@ static void donsol_game_pick_shield(DonsolGame_t* game, card_t *dcard, int power
     game->canDrink = 1;
 }
 
-static u8 donsol_game_pick_enemy(DonsolGame_t* game, card_t *dcard, int atk) {
+static u8 donsol_game_pick_enemy(DonsolGame_t* game, Card_t *dcard, int atk) {
     donsol_game_clear_deltas(game);
 
     int damage = atk;
@@ -419,7 +419,7 @@ void donsol_game_pick_card(DonsolGame_t* game, u8 index) {
         return;
     }
     DonsolCardDescription_t* desc = &game->slots[index-1];
-    card_t *dcard = desc->dcard;
+    Card_t *dcard = desc->dcard;
     
     // Couldn't find that card in the deck. This is an error case.
     if(0 == dcard) {

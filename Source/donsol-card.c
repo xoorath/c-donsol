@@ -74,5 +74,4 @@ void donsol_card_ShuffleDeck(Card_t* collection, u8 count) {
     collection[i] = collection[r];
     collection[r] = t;
   }
-
 }

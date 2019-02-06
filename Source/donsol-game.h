@@ -2,6 +2,8 @@
 #define __DONSOL_GAME_H_
 
 #include <PR/ultratypes.h>
+#include <stdbool.h>
+
 #include "donsol-card.h"
 
 typedef enum {
@@ -21,7 +23,7 @@ typedef enum {
     DONSOL_STATUS_CANT_RUN,
 
     DONSOL_STATUS_YOU_WIN
-} DonsolStatusUpdate;
+} DonsolStatusUpdate_e;
 
 typedef struct {
     Card_t* dcard;
@@ -40,20 +42,20 @@ typedef struct {
     s8 shieldBreakLimit;
 
     // restrictions
-    u8 canDrink;
-    u8 canRun;
+    bool canDrink;
+    bool canRun;
 
     // lets you run infinitely before taking you first action
-    u8 hasTakenAction;
+    bool hasTakenAction;
 
     // only restarting actions will be allowed
-    u8 wonOrDied;
+    bool wonOrDied;
 
     // The 4 active slots.
     DonsolCardDescription_t slots[4];
 
     void(*onError)(char const*);
-    void(*onStatusUpdate)(DonsolStatusUpdate, char const*);
+    void(*onStatusUpdate)(DonsolStatusUpdate_e, char const*);
 } DonsolGame_t;
 
 // init the game object
@@ -61,8 +63,5 @@ void donsol_game_start(DonsolGame_t* game);
 
 void donsol_game_pick_run(DonsolGame_t* game);
 void donsol_game_pick_card(DonsolGame_t* game, u8 index); // index can be: [1,2,3,4]
-
-// perform cleanup
-void donsol_game_quit(DonsolGame_t* game);
 
 #endif // __DONSOL_GAME_H_

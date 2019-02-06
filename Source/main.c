@@ -97,7 +97,7 @@ void OnGameError(char const* msg) {
     memcpy(ErrorBuffer, msg, strlen(msg)+1);
 }
 
-void OnStatusUpdate(DonsolStatusUpdate update, char const* msg) {
+void OnStatusUpdate(DonsolStatusUpdate_e update, char const* msg) {
     sprintf(g_Scene.StatusText, "%s", msg);
 
     g_Scene.PotionJustWasted = (update == DONSOL_STATUS_POTION_WASTED);
@@ -375,7 +375,6 @@ static void Exit(void) {
         dialogue = 0;
     }
 
-    donsol_game_quit(&g_Game);
     delwin(Window);
     endwin();
     refresh();

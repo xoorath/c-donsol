@@ -88,23 +88,22 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
     desc = &game->slots[slotIndex];    
     sprintf(desc->simpleName, "unknown");
     sprintf(desc->name, "unknown : ??");
-    desc->isMonster = 1;
-    desc->isPotion = 0;
-    desc->isShield = 0;
+    desc->isMonster = true;
+    desc->isPotion = false;
+    desc->isShield = false;
     desc->power = 1;
     desc->dcard = dcard;
 
-    if(desc->dcard == 0) {
-        char errBuff[64] = {0};
+    if(NULL == desc->dcard) {
         sprintf(errBuff, "Not setting a card [%d %d]", (int)slotIndex, (int)deckIndex);
         game->onError(errBuff);
         return;
     }
 
     if(donsol_card_IsJoker(*dcard)) {
-        desc->isMonster = 1;
-        desc-> isPotion = 0;
-        desc->isShield = 0;
+        desc->isMonster = true;
+        desc-> isPotion = false;
+        desc->isShield = false;
         desc->power = 21;
         if(*dcard & CARD_JO1) {
             sprintf(desc->simpleName, "First Donsol");
@@ -116,9 +115,9 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
         if(donsol_card_IsNumeric(*dcard)) {
             // potion
             desc->power = donsol_card_GetNumericValue(*dcard) + 1;
-            desc->isMonster = 0;
-            desc-> isPotion = 1;
-            desc->isShield = 0;
+            desc->isMonster = false;
+            desc-> isPotion = true;
+            desc->isShield = false;
             if(desc->power <= 3) {
                 sprintf(desc->simpleName, "Sm Potion");
             } else if(desc->power <= 8) {
@@ -129,9 +128,9 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
         } else {
             // white mage
             desc->power = 11;
-            desc->isMonster = 0;
-            desc-> isPotion = 1;
-            desc->isShield = 0;
+            desc->isMonster = false;
+            desc-> isPotion = true;
+            desc->isShield = false;
             
             sprintf(desc->simpleName, "White Mage");
         }
@@ -139,9 +138,9 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
     else if(donsol_card_IsDiamonds(*dcard)) {
         if(donsol_card_IsNumeric(*dcard)) {
             desc->power = donsol_card_GetNumericValue(*dcard) + 1;
-            desc->isMonster = 0;
-            desc-> isPotion = 0;
-            desc->isShield = 1;
+            desc->isMonster = false;
+            desc-> isPotion = false;
+            desc->isShield = true;
             if(desc->power <= 3) {
                 sprintf(desc->simpleName, "Buckler");
             } else if(desc->power <= 8) {
@@ -151,9 +150,9 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
             }
         } else {
             desc->power = 11;
-            desc->isMonster = 0;
-            desc-> isPotion = 0;
-            desc->isShield = 1;
+            desc->isMonster = false;
+            desc-> isPotion = false;
+            desc->isShield = true;
             sprintf(desc->simpleName, "Red Mage");
         }
     }
@@ -161,15 +160,15 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
         numeric = donsol_card_GetNumericValue(*dcard);
         if(donsol_card_IsNumeric(*dcard)) {
             desc->power = numeric + 1;
-            desc->isMonster = 1;
-            desc-> isPotion = 0;
-            desc->isShield = 0;
+            desc->isMonster = true;
+            desc-> isPotion = false;
+            desc->isShield = false;
 
             sprintf(desc->simpleName, "%s", donsol_card_IsClubs(*dcard) ? s_ClubCreatureNames[desc->power-1] : s_SpadeCreatureNames[desc->power-1]);
         } else {
-            desc->isMonster = 1;
-            desc-> isPotion = 0;
-            desc->isShield = 0;
+            desc->isMonster = true;
+            desc-> isPotion = false;
+            desc->isShield = false;
             switch(numeric) {
                 case CARD_J:
                     desc->power = 11;
@@ -205,8 +204,8 @@ static void donsol_game_set_slot(DonsolGame_t* game, u8 slotIndex, u8 deckIndex)
 static Card_t* donsol_game_next_unflipped_card(DonsolGame_t* game, Card_t* startingCard) {
     Card_t* i;
 
-    if(0 == startingCard) {
-        return 0;
+    if(NULL == startingCard) {
+        return NULL;
     }
 
     for(i = startingCard+1; i < &g_Deck[g_DeckSize]; ++i) {
@@ -219,7 +218,7 @@ static Card_t* donsol_game_next_unflipped_card(DonsolGame_t* game, Card_t* start
             return i;
         }
     }
-    return 0;
+    return NULL;
 }
 
 static void donsol_game_deal4(DonsolGame_t* game) {
@@ -236,7 +235,7 @@ static void donsol_game_deal4(DonsolGame_t* game) {
         for(j = 0; j < 4; ++j) {
             if(i != j) {
                 if(newSlots[i] == newSlots[j]) {
-                    newSlots[j] = 0;
+                    newSlots[j] = NULL;
                 }
             }
         }
@@ -293,7 +292,7 @@ static void donsol_game_pick_shield(DonsolGame_t* game, Card_t *dcard, int power
     game->canDrink = true;
 }
 
-static u8 donsol_game_pick_enemy(DonsolGame_t* game, Card_t *dcard, int atk) {
+static bool donsol_game_pick_enemy(DonsolGame_t* game, Card_t *dcard, int atk) {
     u8 i;
     DonsolCardDescription_t* cd;
     bool shieldIsDamaged;
@@ -329,14 +328,14 @@ static u8 donsol_game_pick_enemy(DonsolGame_t* game, Card_t *dcard, int atk) {
     }
     if(!cd) {
         game->onError("Couldnt find card description for enemy.");
-        return 0;
+        return false;
     }
 
     if(game->hp < 1) {
         sprintf(msgBuff, "The %s killed you!", cd->simpleName);
-        game->wonOrDied = 1;
+        game->wonOrDied = true;
         game->onStatusUpdate(DONSOL_LOST_FIGHT, msgBuff);
-        return 0;
+        return false;
     } else {
         sprintf(msgBuff, "Battled the %s.", cd->simpleName);
         game->onStatusUpdate(DONSOL_LOST_FIGHT, msgBuff);
@@ -347,12 +346,12 @@ static u8 donsol_game_pick_enemy(DonsolGame_t* game, Card_t *dcard, int atk) {
 
     game->canDrink = true;
     game->canRun = true;
-    return 1;
+    return true;
 }
 
 static void donsol_check_for_stage_completion(DonsolGame_t* game) {
     u8 i;
-    u8 anyRemaining = 0;
+    bool anyRemaining = false;
     for(i = 0; i < 4; ++i) {
         if(game->slots[i].dcard != 0 && !donsol_card_IsFlipped(*game->slots[i].dcard)) {
             // at least one card left to deal with
@@ -362,12 +361,12 @@ static void donsol_check_for_stage_completion(DonsolGame_t* game) {
 
     for(i = 0; i < g_DeckSize; ++i) {
         if(!donsol_card_IsFlipped(g_Deck[i])) {
-            anyRemaining = 1;
+            anyRemaining = true;
             break;
         }
     }
     if(!anyRemaining) {
-        game->wonOrDied = 1;
+        game->wonOrDied = true;
         game->onStatusUpdate(DONSOL_STATUS_YOU_WIN, "You win.");
     } else {
         donsol_game_deal4(game);
@@ -414,7 +413,7 @@ void donsol_game_start(DonsolGame_t* game) {
     game->canRun = true;
     game->hasTakenAction = false;
 
-    game->wonOrDied = 0;
+    game->wonOrDied = false;
 
     donsol_game_set_slot(game, 0, 0);
     donsol_game_set_slot(game, 1, 1);

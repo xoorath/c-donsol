@@ -30,7 +30,7 @@ typedef struct {
     char simpleName[32];
     char name[32];
     u8 power;
-    u8 isMonster, isPotion, isShield;
+    bool isMonster, isPotion, isShield;
 } DonsolCardDescription_t;
 
 typedef struct {
